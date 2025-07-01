@@ -5,24 +5,15 @@ import os
 import shutil
 import sys
 import uuid
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
-from collections.abc import AsyncIterator
 
 import anyio
-from anyio.streams.text import TextReceiveStream
+from claif.common import TransportError
 from loguru import logger
 
-from claif.common import TransportError
-from .types import (
-    CodeBlock,
-    CodexMessage,
-    CodexOptions,
-    ContentBlock,
-    ErrorBlock,
-    ResultMessage,
-    TextBlock,
-)
+from claif_cod.types import CodeBlock, CodexMessage, CodexOptions, ContentBlock, ErrorBlock, ResultMessage, TextBlock
 
 
 class CodexTransport:
@@ -34,7 +25,6 @@ class CodexTransport:
 
     async def connect(self) -> None:
         """Initialize transport (no-op for subprocess)."""
-        pass
 
     async def disconnect(self) -> None:
         """Cleanup transport."""
@@ -43,7 +33,8 @@ class CodexTransport:
                 self.process.terminate()
                 await self.process.wait()
             except Exception as e:
-                logger.warning(f"Error during disconnect: {e}")
+                # Disconnect errors during cleanup are usually not critical
+                logger.debug(f"Error during disconnect (expected during cleanup): {e}")
             finally:
                 self.process = None
 
@@ -58,67 +49,66 @@ class CodexTransport:
             logger.debug(f"Working directory: {cwd}")
 
         try:
+            import asyncio
+
             start_time = anyio.current_time()
 
-            async with await anyio.open_process(
-                command,
+            # Use asyncio subprocess instead of anyio for reliability
+            process = await asyncio.create_subprocess_exec(
+                *command,
                 env=env,
                 cwd=cwd,
-                stdout=anyio.subprocess.PIPE,
-                stderr=anyio.subprocess.PIPE,
-            ) as process:
-                self.process = process
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
 
-                # Read output line by line for streaming JSON
-                stdout_stream = TextReceiveStream(process.stdout)
-                stderr_lines = []
+            self.process = process
 
-                # Collect stderr in background
-                async def read_stderr():
-                    stderr_stream = TextReceiveStream(process.stderr)
-                    async for line in stderr_stream:
-                        stderr_lines.append(line)
+            # Wait for process and get all output at once
+            stdout_data, stderr_data = await process.communicate()
 
-                async with anyio.create_task_group() as tg:
-                    tg.start_soon(read_stderr)
+            duration = anyio.current_time() - start_time
 
-                    # Process stdout line by line
-                    async for line in stdout_stream:
-                        line = line.strip()
-                        if not line:
-                            continue
+            # Decode the output
+            stdout_output = stdout_data.decode("utf-8").strip() if stdout_data else ""
+            stderr_output = stderr_data.decode("utf-8").strip() if stderr_data else ""
 
-                        try:
-                            data = json.loads(line)
-                            message = self._parse_message(data)
-                            if message:
-                                yield message
-                        except json.JSONDecodeError as e:
-                            logger.warning(f"Failed to parse JSON line: {e}")
-                            logger.debug(f"Raw line: {line}")
+            # Check for errors
+            if process.returncode != 0:
+                error_msg = stderr_output or "Unknown error"
+                yield ResultMessage(
+                    error=True,
+                    message=f"Codex CLI error: {error_msg}",
+                    duration=duration,
+                    session_id=self.session_id,
+                    model=options.model,
+                )
+                return
 
-                # Wait for process to complete
-                await process.wait()
+            # Process output line by line for streaming JSON
+            if stdout_output:
+                for line in stdout_output.split("\n"):
+                    line = line.strip()
+                    if not line:
+                        continue
 
-                duration = anyio.current_time() - start_time
+                    try:
+                        data = json.loads(line)
+                        message = self._parse_message(data)
+                        if message:
+                            yield message
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse JSON line: {e}")
+                        logger.debug(f"Raw line: {line}")
+                        # Treat as plain text if not JSON
+                        yield CodexMessage(role="assistant", content=[TextBlock(text=line)])
 
-                # Check for errors
-                if process.returncode != 0:
-                    error_msg = "".join(stderr_lines) or "Unknown error"
-                    yield ResultMessage(
-                        error=True,
-                        message=f"Codex CLI error: {error_msg}",
-                        duration=duration,
-                        session_id=self.session_id,
-                        model=options.model,
-                    )
-                else:
-                    # Send success result message
-                    yield ResultMessage(
-                        duration=duration,
-                        session_id=self.session_id,
-                        model=options.model,
-                    )
+            # Send success result message
+            yield ResultMessage(
+                duration=duration,
+                session_id=self.session_id,
+                model=options.model,
+            )
 
         except Exception as e:
             logger.error(f"Transport error: {e}")
@@ -132,6 +122,10 @@ class CodexTransport:
     def _parse_message(self, data: dict[str, Any]) -> CodexMessage | ResultMessage | None:
         """Parse a JSON message into appropriate type."""
         msg_type = data.get("type")
+
+        # Skip input_text blocks (these are just echoing the user's prompt)
+        if msg_type == "input_text":
+            return None
 
         if msg_type == "result":
             return ResultMessage(
@@ -179,14 +173,21 @@ class CodexTransport:
                             error_message=block.get("error_message", ""),
                         )
                     )
+                elif block_type == "input_text":
+                    # Skip input_text blocks (these are user prompts echoed back)
+                    continue
                 else:
-                    # Unknown block type - treat as text
-                    logger.warning(f"Unknown block type: {block_type}")
+                    # Unknown block type - treat as text (common during normal operation)
+                    logger.debug(f"Unknown block type: {block_type}")
                     content_blocks.append(
                         TextBlock(
                             text=str(block),
                         )
                     )
+
+        # Skip messages that only contain input_text (user prompts echoed back)
+        if not content_blocks:
+            return None
 
         return CodexMessage(role=role, content=content_blocks)
 
@@ -196,38 +197,36 @@ class CodexTransport:
         command = [cli_path]
 
         # Model
-        command.extend(["-m", options.model])
+        if options.model:
+            command.extend(["-m", options.model])
 
-        # Working directory
+        # Working directory (writable root for sandbox)
         if options.working_dir:
             command.extend(["-w", str(options.working_dir)])
 
-        # Action mode
-        command.extend(["-a", options.action_mode])
+        # Approval mode
+        if options.action_mode:
+            command.extend(["-a", options.action_mode])
 
-        # Auto-approve
+        # Auto-approve everything (dangerous)
         if options.auto_approve_everything:
-            command.append("--auto-approve")
+            command.append("--dangerously-auto-approve-everything")
 
-        # Full auto
+        # Full auto mode
         if options.full_auto:
             command.append("--full-auto")
 
-        # Optional parameters
-        if options.temperature is not None:
-            command.extend(["--temperature", str(options.temperature)])
+        # Quiet mode for non-interactive output
+        if True:  # FIXME: hasattr(options, "quiet") and options.quiet:
+            command.append("-q")
 
-        if options.max_tokens is not None:
-            command.extend(["--max-tokens", str(options.max_tokens)])
+        # Add verbose/debug support
+        if options.verbose:
+            # Codex doesn't have a debug flag, but we can use quiet mode
+            pass
 
-        if options.top_p is not None:
-            command.extend(["--top-p", str(options.top_p)])
-
-        # JSON output format
-        command.extend(["--output-format", "json"])
-
-        # Query/prompt
-        command.extend(["-q", prompt])
+        # Prompt as positional argument (not with -q flag)
+        command.append(prompt)
 
         return command
 
@@ -271,4 +270,5 @@ class CodexTransport:
             if path.exists():
                 return str(path)
 
-        raise TransportError("Codex CLI not found. Please install it or set CODEX_CLI_PATH environment variable.")
+        msg = "Codex CLI not found. Please install it or set CODEX_CLI_PATH environment variable."
+        raise TransportError(msg)

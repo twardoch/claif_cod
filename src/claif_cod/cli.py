@@ -7,12 +7,6 @@ import time
 from pathlib import Path
 
 import fire
-from loguru import logger
-from rich.console import Console
-from rich.live import Live
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.table import Table
-
 from claif.common import (
     Config,
     Provider,
@@ -21,9 +15,14 @@ from claif.common import (
     format_response,
     load_config,
 )
-from .client import query
-from .types import CodexOptions
+from loguru import logger
+from rich.console import Console
+from rich.live import Live
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
+from claif_cod.client import query
+from claif_cod.types import CodexOptions
 
 console = Console()
 

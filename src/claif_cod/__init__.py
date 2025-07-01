@@ -2,12 +2,11 @@
 
 from collections.abc import AsyncIterator
 
+from claif.common import ClaifOptions, Message
 from loguru import logger
 
-from claif.common import ClaifOptions, Message
-from .client import query as codex_query
-from .types import CodexOptions
-
+from claif_cod.client import query as codex_query
+from claif_cod.types import CodexOptions
 
 __version__ = "0.1.0"
 
@@ -44,4 +43,4 @@ async def query(
         yield message
 
 
-__all__ = ["query", "CodexOptions"]
+__all__ = ["CodexOptions", "query"]

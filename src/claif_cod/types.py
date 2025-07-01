@@ -2,9 +2,10 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, List, Any
+from typing import Union
 
-from claif.common import Message, MessageRole, TextBlock as ClaifTextBlock
+from claif.common import Message, MessageRole
+from claif.common import TextBlock as ClaifTextBlock
 
 
 @dataclass
@@ -93,4 +94,3 @@ class ResultMessage:
     session_id: str | None = None
     model: str | None = None
     token_count: int | None = None
-

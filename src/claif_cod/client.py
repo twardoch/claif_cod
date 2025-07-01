@@ -2,11 +2,11 @@
 
 from collections.abc import AsyncIterator
 
+from claif.common import Message
 from loguru import logger
 
-from claif.common import Message
-from .types import CodexMessage, CodexOptions, ResultMessage
-from .transport import CodexTransport
+from claif_cod.transport import CodexTransport
+from claif_cod.types import CodexMessage, CodexOptions, ResultMessage
 
 
 class CodexClient:
