@@ -45,7 +45,7 @@ classifiers = [
 dependencies = [
     "claif>=1.0.0",
     "anyio>=4.0.0",
-    "fire>=0.6.0",
+    "fire>=0.7.0",
     "rich>=13.0.0",
     "loguru>=0.7.0",
 ]
@@ -100,6 +100,11 @@ docs = [
 
 # All optional dependencies combined
 all = [
+    "claif>=1.0.0",
+    "anyio>=4.0.0",
+    "fire>=0.7.0",
+    "rich>=13.0.0",
+    "loguru>=0.7.0",
     # Dev dependencies
     'pre-commit>=4.1.0',
     'ruff>=0.9.7',
