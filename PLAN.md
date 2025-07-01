@@ -1,114 +1,103 @@
-# CLAIF_COD v1.0 Development Plan
+# CLAIF_COD Development Plan - Minimal Viable Product
 
 ## Current Status
 
-CLAIF_COD is a well-structured provider implementation for the CLAIF framework that wraps a hypothetical "Codex CLI" tool. The codebase is clean, follows best practices, and correctly implements the CLAIF provider interface.
+CLAIF_COD is a complete async subprocess wrapper for a hypothetical "Codex CLI" tool. The architecture is solid and correctly implements the CLAIF provider interface.
 
-**Critical Issue**: OpenAI's Codex was discontinued in March 2023, and there was never an official CLI tool. This wrapper cannot function without a real CLI to integrate with.
+**Note**: This serves as a reference implementation and template for wrapping CLI-based AI tools into the CLAIF framework.
 
-## MVP v1.0 Strategy
+## MVP Strategy - Ship What Works
 
-### Option A: Mock Implementation (Recommended for v1.0)
+### Core Value Proposition
 
-Create a functional reference implementation that demonstrates CLAIF provider patterns:
+CLAIF_COD demonstrates how to:
+1. Wrap any CLI tool with async subprocess management
+2. Convert between tool-specific and CLAIF message formats
+3. Provide both CLI and Python API interfaces
+4. Handle errors, timeouts, and platform differences
 
-1. **Mock CLI Simulator**
-   - Create a simple Python script that mimics Codex CLI behavior
-   - Use it for testing and demonstration purposes
-   - Document it as a reference implementation
+### What We Have (Keep As-Is)
 
-2. **Core Functionality**
-   - Keep existing architecture intact
-   - Add comprehensive tests using the mock CLI
-   - Implement configuration save/load
-   - Ensure all CLI commands work with mock
+- ✅ Complete async transport layer with anyio
+- ✅ Fire-based CLI with rich output
+- ✅ Message format conversion
+- ✅ Comprehensive type system
+- ✅ Error handling and logging
+- ✅ Platform-aware CLI discovery
 
-3. **Documentation**
-   - Clearly state this is a reference implementation
-   - Provide guide for adapting to other CLI tools
-   - Include examples of expected CLI behavior
+### What We Need (Minimal Additions)
 
-### Option B: Alternative CLI Integration
+1. **Basic Mock CLI** (for testing/demo)
+   - Simple Python script that echoes JSON
+   - Just enough to show the wrapper works
+   - Document as example, not production
 
-If a suitable code-generation CLI becomes available:
+2. **Essential Tests**
+   - Transport layer subprocess handling
+   - Message parsing edge cases
+   - CLI command verification
 
-1. **Adapt Transport Layer**
-   - Modify CLI discovery for new tool
-   - Update command building logic
-   - Adjust JSON parsing if needed
+3. **Clear Documentation**
+   - State this is a reference implementation
+   - Show how to adapt for real CLIs
+   - Include architecture diagrams
 
-2. **Update Types**
-   - Map new CLI's options to CodexOptions
-   - Update message parsing
+## Scope for v1.x
 
-3. **Maintain CLAIF Interface**
-   - Keep the same public API
-   - Ensure compatibility with CLAIF framework
+### Already Complete
+- ✅ CLAIF provider interface
+- ✅ Async subprocess wrapper
+- ✅ Fire CLI with rich output
+- ✅ Message conversion logic
+- ✅ Type-safe dataclasses
+- ✅ Error handling framework
+- ✅ Platform compatibility
 
-## Core Features for v1.0
+### Minimal Additions for v1.0
+- 🔲 Mock CLI script (50 lines)
+- 🔲 Basic transport tests
+- 🔲 README clarifications
 
-### Must Have
-- ✅ CLAIF provider interface implementation
-- ✅ Fire-based CLI with all commands
-- ✅ Async transport layer
-- ✅ Message normalization
-- ✅ Error handling and timeouts
-- 🔲 Mock CLI for testing/demo
-- 🔲 Basic integration tests
-- 🔲 Configuration persistence
-- 🔲 Comprehensive documentation
-
-### Nice to Have (Post v1.0)
-- Dynamic model discovery
-- Session management
-- Response caching
-- Advanced approval workflows
-- Metrics and telemetry
+### Intentionally Deferred
+- ❌ Configuration file support (works via env vars)
+- ❌ Session management (stateless is fine)
+- ❌ Response caching (not needed for v1)
+- ❌ Advanced features (keep it simple)
 
 ## Architecture Decisions
 
-1. **Keep Current Structure**
-   - The layered architecture is solid
-   - Provider pattern is correctly implemented
-   - Good separation of concerns
+1. **No Changes Needed**
+   - Current architecture is production-ready
+   - All patterns are correctly implemented
+   - Code is clean and well-structured
 
-2. **Testing Strategy**
-   - Use mock subprocess for unit tests
-   - Create integration tests with mock CLI
-   - Document expected CLI behavior
+2. **Minimal Testing**
+   - Focus on transport layer reliability
+   - Test message parsing edge cases
+   - Skip complex integration tests for v1.0
 
-3. **Configuration**
-   - Implement simple TOML-based config
-   - Support environment variables
-   - Allow CLI path override
+3. **Simple Configuration**
+   - Environment variables work fine
+   - No need for config files yet
+   - Document the env vars clearly
 
 ## Release Criteria for v1.0
 
-1. All "Must Have" features complete
-2. Tests passing with >80% coverage
-3. Documentation updated
-4. Mock CLI functioning
-5. PyPI package ready
-6. Clear migration path documented
+1. Mock CLI script works
+2. Basic tests pass
+3. README accurately describes the project
+4. Package installs cleanly
+5. All existing features work
 
-## Future Roadmap
+## Post v1.0 Considerations
 
-### v1.1 - Enhanced Testing
-- More comprehensive test suite
-- Performance benchmarks
-- Cross-platform testing
+- If real CLI tools emerge, adapt the transport layer
+- Add features only when there's clear demand
+- Keep the codebase simple and maintainable
+- Focus on being a good template/reference
 
-### v1.2 - Real CLI Integration
-- Support for actual code generation CLIs
-- Dynamic CLI detection
-- Multi-CLI support
+## Philosophy
 
-### v2.0 - Advanced Features
-- Session management
-- Response caching
-- Plugin system for CLIs
-- Web UI for configuration
+"Ship a working reference implementation that others can learn from and adapt."
 
-## Notes
-
-The current implementation is high quality and serves as an excellent reference for CLAIF provider development. The main challenge is the lack of a real Codex CLI. By creating a mock implementation, we can deliver a functional v1.0 that demonstrates the architecture while being honest about its limitations.
+The code is already good. Don't over-engineer. Make it clear what this is (a template) and what it isn't (a production Codex integration). Let users adapt it for their needs.

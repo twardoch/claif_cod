@@ -7,25 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-07-01
+
 ### Added
 - Comprehensive README documentation
 - Complete pyproject.toml configuration
 - CLI entry point `claif-cod`
 - Full development dependencies setup
 - Proper build configuration for wheel and sdist
+- PLAN.md and TODO.md for project roadmap
+- .specstory for conversation history
 
 ### Changed
 - Updated package description and keywords
 - Fixed import paths from relative to absolute
 - Improved code formatting and linting compliance
 - Enhanced project metadata
+- Significant refactoring of all core modules
+- Updated logging to use loguru instead of standard logging
 
 ### Fixed
 - Import errors in all modules
 - Missing newlines at end of files
 - Ruff configuration issues
 
-## [0.1.0] - 2024-01-01
+## [1.0.0] - 2025-07-01
 
 ### Added
 - Initial release

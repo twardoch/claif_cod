@@ -1,105 +1,75 @@
-# TODO - CLAIF_COD v1.0
+# TODO - CLAIF_COD Minimal Viable Product
 
-## Priority 1: Core Functionality (MVP)
+## Essential for v1.0 (Do These Only)
 
-### Mock CLI Implementation
-- [ ] Create `mock_codex_cli.py` script in `tests/fixtures/`
-- [ ] Implement basic command parsing
-- [ ] Add JSON output for queries
-- [ ] Support model listing
-- [ ] Handle health checks
-- [ ] Document mock CLI behavior
+### Mock CLI Script
+- [ ] Create `tests/mock_codex_cli.py` (minimal implementation)
+  ```python
+  # Accept arguments, print JSON responses
+  # Support: query, models, health commands
+  # ~50 lines total
+  ```
 
-### Configuration
-- [ ] Implement `config save` command
-- [ ] Implement `config load` command
-- [ ] Add configuration file validation
-- [ ] Create default config template
-- [ ] Add config migration support
+### Basic Tests
+- [ ] Test transport._find_cli_path()
+- [ ] Test transport._build_command() 
+- [ ] Test transport._parse_output_line()
+- [ ] Test client message conversion
+- [ ] Test CLI output formatting
 
-### Testing
-- [ ] Add unit tests for transport layer
-- [ ] Add unit tests for client module
-- [ ] Add unit tests for CLI commands
-- [ ] Create integration tests with mock CLI
-- [ ] Add type checking tests
-- [ ] Achieve >80% code coverage
+### Documentation Updates
+- [ ] Add "Reference Implementation" note to README
+- [ ] Document environment variables clearly
+- [ ] Add mock CLI usage example
+- [ ] State that Codex CLI doesn't exist
 
-### Documentation
-- [ ] Update README with mock CLI instructions
-- [ ] Add "Limitations" section to README
-- [ ] Create CONTRIBUTING.md
-- [ ] Add API documentation
-- [ ] Create migration guide for other CLIs
-- [ ] Add troubleshooting section
+### Release
+- [ ] Verify package installs: `pip install -e .`
+- [ ] Run basic tests
+- [ ] Tag release
+- [ ] Publish to PyPI
 
-### Package & Release
-- [ ] Verify all dependencies are correct
-- [ ] Test package installation
-- [ ] Create GitHub Actions for CI/CD
-- [ ] Prepare PyPI release
-- [ ] Tag v1.0.0 release
+## Nice to Have (If Time Permits)
 
-## Priority 2: Polish & Improvements
+- [ ] GitHub Actions workflow
+- [ ] More test coverage
+- [ ] Config file support
+- [ ] Better error messages
 
-### Error Handling
-- [ ] Add specific error for missing CLI
-- [ ] Improve timeout error messages
-- [ ] Add retry logic for transient failures
-- [ ] Better JSON parsing errors
+## Future Ideas (Post v1.0)
 
-### CLI Enhancements
-- [ ] Add `--version` flag
-- [ ] Add `--debug` mode
-- [ ] Improve help text
-- [ ] Add command aliases
-- [ ] Add shell completion
+**Only consider these if there's real demand:**
 
-### Code Quality
-- [ ] Add more type hints
-- [ ] Improve docstrings
-- [ ] Remove any dead code
-- [ ] Optimize imports
-- [ ] Add performance logging
+- Session management (if users need state)
+- Config file support (if env vars aren't enough)
+- Response caching (if performance matters)
+- Retry logic (if reliability issues arise)
+- Real CLI integration (if suitable CLIs appear)
 
-## Priority 3: Future Features (Post v1.0)
+**Principles:**
+- Don't add features without user demand
+- Keep it simple and maintainable
+- Focus on being a good reference/template
 
-### Advanced Features
-- [ ] Session management
-- [ ] Response caching
-- [ ] Plugin system for CLIs
-- [ ] Dynamic model discovery
-- [ ] Approval strategy plugins
+## Explicitly Not Doing
 
-### Integration
-- [ ] Support for Continue.dev CLI
-- [ ] Support for GitHub Copilot CLI
-- [ ] Generic CLI adapter framework
-- [ ] Direct API integration option
+- ❌ Configuration files (env vars are sufficient)
+- ❌ Session management (stateless is simpler)
+- ❌ Response caching (not needed)
+- ❌ Advanced approval workflows (basic modes work)
+- ❌ Comprehensive test suite (basic tests are enough)
+- ❌ Performance optimization (it's fast enough)
+- ❌ Multiple CLI support (one example is enough)
+- ❌ Complex error recovery (fail fast is fine)
 
-### Developer Experience
-- [ ] Development container setup
-- [ ] VSCode extension
-- [ ] Jupyter notebook support
-- [ ] Interactive mode improvements
+## Summary
 
-## Not Doing (Out of Scope for v1.0)
+**Ship what we have.** The code is good. Add a minimal mock CLI for testing, write a few tests, update the docs to be honest about what this is, and release it.
 
-- ❌ Real Codex CLI integration (doesn't exist)
-- ❌ Complex approval workflows
-- ❌ Multi-user support
-- ❌ Web UI
-- ❌ Cloud deployment
-- ❌ Commercial features
-- ❌ Advanced telemetry
-- ❌ Database integration
+Total work: ~2-4 hours
+- Mock CLI: 30 minutes
+- Basic tests: 1 hour
+- Doc updates: 30 minutes
+- Release: 1 hour
 
-## Notes
-
-Focus on delivering a solid reference implementation that:
-1. Works out of the box with mock CLI
-2. Demonstrates CLAIF provider patterns
-3. Is well-tested and documented
-4. Can be easily adapted to real CLIs
-
-Remember: "Done is better than perfect" - ship a working v1.0 that people can use and learn from.
+**Remember**: This is a reference implementation that shows how to wrap CLI tools in CLAIF. It doesn't need to be perfect or feature-complete. It needs to be clear, correct, and useful as a template.

@@ -1,269 +1,317 @@
+# CLAIF_COD - Development Guide for AI Agents
 
-# CLAIF (Command-Line Artificial Intelligence Framework)
+This document provides guidance for AI agents working on the CLAIF_COD codebase. It explains the project structure, development principles, and implementation details.
 
-CLAIF (Command-Line AI Framework) is a unified interface for interacting with various large language models (LLMs) from the command line.
+## Project Overview
 
-The project consists of four Github repositories and Python packages:
+**CLAIF_COD** is a provider package for the CLAIF framework that wraps OpenAI's Codex CLI tool. It enables AI-powered code generation and manipulation through async subprocess management.
 
-- [`claif_cla`](https://github.com/twardoch/claif_cla/): CLI and Python package that wraps the [`claude_code_sdk`](https://github.com/anthropics/claude-code-sdk-python) package for interacting with Anthropic’s [Claude Code CLI](https://github.com/anthropics/claude-code) agentic CLI toolkit based on their Claude models.
-- [`claif_cod`](https://github.com/twardoch/claif_cod/): CLI and Python package for interacting with OpenAI’s new [Codex CLI](https://github.com/openai/codex) agentic CLI toolkit based on OpenAI’s models.
-- [`claif_gem`](https://github.com/twardoch/claif_gem/): CLI and Python package for that wraps the [Gemini CLI](https://github.com/google-gemini/gemini-cli/) agentic CLI toolkit based on Google’s Gemini models.
-- [`claif`](https://github.com/twardoch/claif/): The top-level CLAIF framework that provides the main building blocks, including the client, server, and provider integrations.
+### Key Components
 
-This document provides comprehensive development guidelines for all packages in the CLAIF ecosystem.
+1. **Transport Layer** (`transport.py`)
+   - Async subprocess management using anyio
+   - JSON streaming communication with Codex CLI
+   - Platform-aware CLI path discovery
+   - Timeout and error handling
 
-## 1. This very project overview
+2. **Client Layer** (`client.py`)
+   - Orchestrates transport lifecycle
+   - Converts between Codex and CLAIF message formats
+   - Manages connection state
 
-### 1.1. `claif_cod`: CLAIF provider for the OpenAI Codex CLI toolkit
+3. **CLI Interface** (`cli.py`)
+   - Fire-based command structure
+   - Rich terminal output with progress indicators
+   - Multiple output formats (text, json, code)
 
-[`claif_cod`](https://github.com/twardoch/claif_cod/): CLI and Python package for interacting with OpenAI’s new [Codex CLI](https://github.com/openai/codex) agentic CLI toolkit based on OpenAI’s models.
+4. **Type System** (`types.py`)
+   - Dataclasses for all message types
+   - Options configuration
+   - Content block hierarchy
 
-**Key Responsibilities:**
+### Current Implementation Status
 
-- Code generation and manipulation
-- Action mode management (review/interactive/auto)
-- Working directory integration
-- Project-aware operations
+- ✅ Basic async subprocess communication
+- ✅ JSON message parsing and streaming
+- ✅ CLI with Fire framework
+- ✅ Rich terminal output
+- ✅ Message format conversion
+- ✅ Error handling and timeouts
+- ✅ Platform-specific CLI discovery
+- ⚠️ Limited test coverage
+- ⚠️ No actual Codex CLI binary (hypothetical)
+- ⚠️ Configuration system partially implemented
 
-**Development Focus:**
+## Code Architecture Details
 
-- Code safety and review features
-- File system operations
-- Project context awareness
-- Action mode refinement
+### Transport Layer Implementation
 
-## 2. Other projects in the CLAIF ecosystem
-
-### 2.1. `claif`: CLAIF core framework
-
-[`claif`](https://github.com/twardoch/claif/) is the top-level CLAIF framework that provides the main building blocks, including the client, server, and provider integrations.
-
-**Key Responsibilities:**
-
-- Provider abstraction and routing
-- Plugin discovery and loading
-- Common types and error handling
-- Configuration management
-- CLI framework (Fire-based)
-- MCP server implementation
-
-**Development Focus:**
-
-- Maintain strict API compatibility
-- Ensure provider independence
-- Keep dependencies minimal
-- Prioritize extensibility
-
-### 2.2. `claif_cla`: CLAIF provider for the Anthropic Claude Code CLI toolkit
-
-[`claif_cla`](https://github.com/twardoch/claif_cla/) is a CLI and Python package that wraps the [`claude_code_sdk`](https://github.com/anthropics/claude-code-sdk-python) package for interacting with Anthropic’s [Claude Code CLI](https://github.com/anthropics/claude-code) agentic CLI toolkit based on their Claude models.
-
-**Key Responsibilities:**
-
-- Claude API integration
-- Session management and persistence
-- Tool approval strategies
-- Response caching
-- Session branching/merging
-
-**Development Focus:**
-
-- Maintain claude-code-sdk compatibility
-- Enhance session features
-- Improve approval strategies
-- Optimize caching logic
-
-### 2.3. `claif_gem`: CLAIF provider for the Google Gemini CLI toolkit
-
-[`claif_gem`](https://github.com/twardoch/claif_gem/): CLI and Python package for that wraps the [Gemini CLI](https://github.com/google-gemini/gemini-cli/) agentic CLI toolkit based on Google’s Gemini models.
-
-**Key Responsibilities:**
-
-- Gemini CLI subprocess management
-- Auto-approval and yes-mode handling
-- Context length management
-- System prompt configuration
-
-**Development Focus:**
-
-- Robust subprocess handling
-- CLI argument parsing
-- Timeout and error recovery
-- Cross-platform compatibility
-
-## 3. Working Principles for CLAIF Development
-
-### 3.1. Core Development Principles
-
-When developing for CLAIF (in any sub-project):
-
-- **Iterate gradually**, avoiding major breaking changes to the plugin interface
-- **Minimize user confirmations** while maintaining safety, especially for code operations
-- **Preserve existing API contracts** unless a major version bump is planned
-- **Use module-level constants** over magic numbers (e.g., `DEFAULT_TIMEOUT = 120`)
-- **Check for existing utilities** in `claif.common` before implementing new ones
-- **Ensure coherence** between provider implementations and the unified interface
-- **Focus on minimal viable features** and ship incremental improvements
-- **Write comprehensive docstrings** explaining both what and WHY, including cross-references
-- **Analyze provider differences** line-by-line when implementing unified features
-- **Handle provider failures gracefully** with retries, fallbacks, and clear error messages
-- **Address edge cases** like network timeouts, API limits, and malformed responses
-- **Let the framework handle complexity**, minimize provider-specific user decisions
-- **Reduce cognitive load** through consistent naming and behavior across providers
-- **Modularize provider logic** into focused, testable components
-- **Favor flat provider hierarchies** over deeply nested inheritance
-- **Maintain documentation**:
-  - README.md (purpose and usage for each sub-project)
-  - CHANGELOG.md (version history with migration notes)
-  - TODO.md (planned features and known issues)
-  - PROGRESS.md (implementation status for each provider)
-
-### 3.2. Using Development Tools
-
-Before and during development, you should:
-
-- Use `context7` tool to check latest Python package documentation
-- Consult `deepseek/deepseek-r1-0528:free` via `chat_completion` for complex architectural decisions
-- Query `openai/o3` via `chat_completion` for API design and compatibility questions
-- Apply `sequentialthinking` tool for solving cross-provider compatibility issues
-- Search with `perplexity_ask` and `duckduckgo_web_search` for provider API updates
-
-### 3.3. File Organization
-
-In each source file, maintain the `this_file` record:
+The `CodexTransport` class in `transport.py` handles all subprocess communication:
 
 ```python
-# this_file: src/claif_cla/cli.py
-"""CLI interface for the CLAIF Claude provider"""
+# Key methods:
+- _find_cli_path(): Searches for Codex CLI binary
+  1. Check CODEX_CLI_PATH environment variable
+  2. Search in PATH
+  3. Check common installation locations
+  
+- _build_command(): Constructs CLI arguments
+  - Handles all CodexOptions fields
+  - Escapes arguments properly
+  - Adds JSON output flag
+  
+- send_query(): Main execution method
+  - Uses anyio.open_process() for async subprocess
+  - Streams stdout line-by-line
+  - Collects stderr for error reporting
+  - Implements timeout with graceful shutdown
 ```
 
-### 3.4. Python-Specific Guidelines
+### Message Flow Architecture
 
-For all CLAIF Python code:
+```
+1. User Input
+   ↓
+2. CLI/API Entry (cli.py / __init__.py)
+   ↓
+3. CodexClient.query() (client.py)
+   ↓
+4. CodexTransport.send_query() (transport.py)
+   ↓
+5. Subprocess execution (anyio)
+   ↓
+6. JSON line parsing
+   ↓
+7. CodexMessage creation (types.py)
+   ↓
+8. to_claif_message() conversion
+   ↓
+9. Yield Message to caller
+```
 
-- **PEP 8**: Consistent formatting with 120-char line limit (per pyproject.toml)
-- **Descriptive names**: `query_with_retry()` not `qwr()`
-- **PEP 20**: Explicit provider selection over magic
-- **Type hints**: Use simple unions (`str | None` not `Optional[str]`)
-- **PEP 257**: Imperative mood docstrings with provider examples
-- **Modern Python**: f-strings, pattern matching for message types
-- **Logging**: Loguru-based with provider-specific contexts
-- **CLI scripts**: Fire & rich with uv shebang:
+### Error Handling Strategy
+
+1. **Transport Errors**: Wrapped in TransportError
+2. **Timeout Errors**: Process terminated, TimeoutError raised
+3. **Parse Errors**: Logged and skipped (resilient parsing)
+4. **CLI Not Found**: Clear error message with installation hint
+5. **Result Errors**: Propagated from Codex CLI response
+
+## Development Principles for CLAIF_COD
+
+### Code Style Guidelines
+
+1. **Async-First Design**
+   - All I/O operations use async/await
+   - anyio for cross-platform async compatibility
+   - Async generators for streaming responses
+
+2. **Type Safety**
+   - Comprehensive type hints on all functions
+   - Dataclasses for structured data
+   - Union types for flexibility (e.g., `str | None`)
+
+3. **Error Handling**
+   - Graceful degradation over hard failures
+   - Detailed error messages for debugging
+   - Timeout protection on all subprocess operations
+
+4. **Logging Strategy**
+   - loguru for structured logging
+   - Debug logs for transport operations
+   - Error logs for failures only
+   - No info/warning spam
+
+### Testing Approach
 
 ```python
-#!/usr/bin/env -S uv run -s
-# /// script
-# dependencies = ["fire", "rich", "claif"]
-# ///
-# this_file: scripts/provider_test.py
+# Current test coverage is minimal
+# Focus areas for expansion:
+1. Transport layer subprocess mocking
+2. Message parsing edge cases
+3. CLI command generation
+4. Error handling scenarios
+5. Platform-specific path discovery
 ```
 
-After changes, run:
+### Configuration Management
 
-```bash
-uv run uzpy run .
-fd -e py -x autoflake {}
-fd -e py -x pyupgrade --py312-plus {}
-fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
-fd -e py -x ruff format --respect-gitignore --target-version py312 {}
-python -m pytest
+```python
+# Environment variables:
+CODEX_CLI_PATH      # Path to Codex CLI binary
+CODEX_DEFAULT_MODEL # Default model name
+CODEX_ACTION_MODE   # Default action mode
+CODEX_TIMEOUT       # Default timeout seconds
+
+# Config file (~/.claif/config.toml):
+[providers.codex]
+enabled = true
+cli_path = "/path/to/codex-cli"
+default_model = "o4-mini"
+timeout = 180
 ```
 
-## 4. Sub-Project Specific Guidelines
+### Common Development Tasks
 
-### 4.1. `claif_cod`: CLAIF provider for the OpenAI Codex CLI toolkit
+#### Adding a New CLI Command
 
-**Code Safety:**
+1. Add method to `CodexCLI` class in `cli.py`
+2. Use Fire conventions (underscores become hyphens)
+3. Add rich formatting for output
+4. Update README.md with example
 
-- Default to review mode for all operations
-- Implement diff preview before applying changes
-- Maintain operation history for rollback
-
-**Project Integration:**
-
-- Respect .gitignore patterns
-- Detect project type (Python, JS, etc.)
-- Use appropriate code formatters
-
-**Action Modes:**
-
-- Clearly separate mode logic
-- Provide mode transition safeguards
-- Log all automated actions
-
-## 5. Quality Assurance
-
-### 5.1. Pre-Commit Checks
-
-All sub-projects must pass:
-
-```yaml
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  hooks:
-    - id: ruff
-    - id: ruff-format
-- repo: https://github.com/pre-commit/mirrors-mypy
-  hooks:
-    - id: mypy
+```python
+def new_command(self, arg1: str, arg2: int = 10) -> None:
+    """Description for --help output."""
+    # Implementation
 ```
 
-### 5.2. Testing Strategy
+#### Adding a New Option
 
-1. **Unit Tests**: Provider-specific logic
-2. **Integration Tests**: Provider + CLAIF core
-3. **E2E Tests**: CLI commands with real providers
-4. **Performance Tests**: Response time, memory usage
+1. Add field to `CodexOptions` dataclass in `types.py`
+2. Update `_build_command()` in `transport.py`
+3. Add CLI parameter in `cli.py`
+4. Update option conversion in `__init__.py`
 
-### 5.3. Documentation Requirements
+#### Handling New Message Types
 
-Each sub-project must maintain:
+1. Add new block type in `types.py` (inherit from `ContentBlock`)
+2. Update `_parse_output_line()` in `transport.py`
+3. Add conversion logic in `to_claif_message()`
+4. Test with mock JSON responses
 
-- Comprehensive README with examples
-- API reference (autodoc where possible)
-- Migration guides for breaking changes
-- Troubleshooting section
+### Debugging Tips
 
-## 6. Virtual Team Collaboration
+1. **Enable verbose mode**: `--verbose` flag shows all transport operations
+2. **Check CLI path**: `claif-cod health` verifies CLI discovery
+3. **Test subprocess**: Run Codex CLI directly to verify behavior
+4. **Mock responses**: Use test fixtures for JSON message testing
+5. **Async debugging**: Use `asyncio.run(main(), debug=True)`
 
-When developing CLAIF:
+### Performance Considerations
 
-**Be creative, diligent, critical, relentless & funny!**
+- Subprocess spawn time is the main bottleneck
+- JSON parsing is negligible compared to I/O
+- Streaming prevents memory issues with large responses
+- anyio provides optimal platform-specific async implementation
 
-Lead two virtual experts:
+## Implementation Checklist
 
-- **"Ideot"**: Proposes creative provider features and unconventional integrations
-- **"Critin"**: Critiques API design and identifies compatibility issues
+### Completed Features ✅
 
-The three of you shall:
+- [x] Async subprocess management with anyio
+- [x] JSON streaming message parser
+- [x] Fire-based CLI with rich output
+- [x] Message format conversion (Codex → CLAIF)
+- [x] Platform-aware CLI path discovery
+- [x] Timeout handling with process cleanup
+- [x] Error propagation and logging
+- [x] Type hints and dataclasses
+- [x] Basic health check command
+- [x] Model listing and info commands
 
-- Illuminate the best provider abstraction patterns
-- Process provider differences methodically
-- Collaborate on cross-provider features
-- Adapt when provider APIs change
+### Pending Features ⚠️
 
-If compatibility issues arise, step back and focus on the unified interface goals.
+- [ ] Comprehensive test suite
+- [ ] Configuration file support
+- [ ] Retry logic for transient failures
+- [ ] Response caching mechanism
+- [ ] Session state management
+- [ ] Progress callbacks for long operations
+- [ ] Structured diff output for code changes
+- [ ] Integration tests with mock CLI
+- [ ] Performance benchmarks
+- [ ] API documentation generation
 
-## 7. Release Coordination
+## Testing Strategy for CLAIF_COD
 
-Since CLAIF uses a monorepo structure:
+### Unit Test Structure
 
-1. Version all packages together
-2. Update inter-package dependencies
-3. Test all providers before release
-4. Publish in order: claif → providers
-5. Tag releases with `v{version}`
+```python
+# tests/test_transport.py
+- Test CLI path discovery logic
+- Test command building with various options
+- Test JSON parsing with edge cases
+- Test timeout handling
 
-## 8. Final Checkpoint
+# tests/test_client.py
+- Test message conversion
+- Test error propagation
+- Test connection lifecycle
 
-When completing any CLAIF development:
+# tests/test_cli.py
+- Test command parsing
+- Test output formatting
+- Test error display
+```
 
-**"Wait, but..."** - Review your changes:
+### Integration Test Approach
 
-- Does it maintain provider abstraction?
-- Is the API still unified?
-- Are errors handled consistently?
-- Is the documentation updated?
+```python
+# Mock Codex CLI subprocess
+class MockCodexCLI:
+    def __init__(self, responses):
+        self.responses = responses
+    
+    async def run(self):
+        for response in self.responses:
+            print(json.dumps(response))
+            await asyncio.sleep(0.1)
+```
 
-Repeat this reflection, but stick to "minimal viable next version" philosophy.
+### Test Data Examples
 
-Remember: CLAIF's strength is its unified interface. Every line of code should serve this goal while allowing providers to shine with their unique capabilities.
+```json
+// Success response
+{
+  "message_type": "content",
+  "content": [{"type": "text", "text": "Generated code"}]
+}
+
+// Error response
+{
+  "message_type": "result",
+  "error": true,
+  "message": "Model not available"
+}
+```
+
+## Future Enhancements
+
+### Short Term (v1.x)
+
+1. **Complete test coverage** (target: >80%)
+2. **Configuration file support** via CLAIF config system
+3. **Better error messages** with actionable hints
+4. **Mock CLI for testing** without real Codex binary
+5. **Documentation site** with API reference
+
+### Medium Term (v2.x)
+
+1. **Session management** for multi-turn conversations
+2. **Response caching** to avoid duplicate queries
+3. **Diff visualization** for code changes
+4. **Plugin system** for custom processors
+5. **Metrics collection** for usage analytics
+
+### Long Term (v3.x)
+
+1. **Native API integration** (skip CLI wrapper)
+2. **Streaming optimizations** for faster response
+3. **Multi-model routing** based on task type
+4. **Collaborative features** for team usage
+5. **IDE integrations** via language servers
+
+## Maintenance Notes
+
+- Keep dependency on `claif.common` minimal
+- Maintain backward compatibility with CLI changes
+- Document all breaking changes in CHANGELOG.md
+- Run full test suite before releases
+- Update README examples with each feature
+
+## Contact
+
+For questions about this codebase:
+- GitHub Issues: https://github.com/twardoch/claif_cod/issues
+- CLAIF Framework: https://github.com/twardoch/claif

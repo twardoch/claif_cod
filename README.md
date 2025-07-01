@@ -1,19 +1,28 @@
 # CLAIF_COD - Codex Provider for CLAIF
 
+## Quickstart
+
+CLAIF_COD is an async Python wrapper that integrates CLI-based AI code generation tools into the CLAIF framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks.
+
+```bash
+pip install claif_cod && claif-cod query "Write a Python function to calculate fibonacci numbers"
+```
+
 **CLAIF_COD** is a Python package that provides integration with OpenAI's Codex CLI as part of the CLAIF (Command-Line Artificial Intelligence Framework) ecosystem. It enables AI-powered code generation, refactoring, and manipulation through both command-line and programmatic interfaces.
 
-## What is CLAIF_COD?
+## What CLAIF_COD Does
 
-CLAIF_COD is a specialized provider that wraps the Codex CLI binary, offering:
+CLAIF_COD acts as a specialized provider that creates an async subprocess wrapper around the Codex CLI binary. The package:
 
-- **AI-powered code generation and manipulation** through OpenAI's Codex models
-- **Multiple action modes** for different levels of automation (review, interactive, full-auto)
-- **Project-aware operations** with working directory support
-- **Subprocess management** with timeout protection and error handling
-- **Rich terminal output** with progress indicators and formatted tables
-- **Async/await support** for modern Python applications
+- **Manages subprocess communication** with the Codex CLI binary through async streaming
+- **Converts between CLAIF and Codex message formats** for unified API compatibility
+- **Provides multiple action modes** (review, interactive, full-auto) for code safety
+- **Handles platform-specific CLI discovery** across Windows, macOS, and Linux
+- **Implements timeout protection** and graceful error handling for long operations
+- **Offers both CLI and Python API** interfaces with rich terminal output
+- **Logs operations with loguru** for debugging and monitoring
 
-The package acts as a bridge between the CLAIF framework and the Codex CLI, normalizing messages and providing a consistent interface across different AI providers.
+The transport layer spawns the Codex CLI as a subprocess, streams JSON-formatted messages, and normalizes them into the CLAIF message format for consistent cross-provider usage.
 
 ## Installation
 
@@ -46,8 +55,13 @@ pip install claif claif_cod
 
 ### Development Installation
 ```bash
-# Install with all development dependencies
-pip install -e ".[dev,test,docs,all]"
+# Clone and install with development dependencies
+git clone https://github.com/twardoch/claif_cod.git
+cd claif_cod
+pip install -e ".[dev,test]"
+
+# Or using uv for faster installation
+uv pip install -e ".[dev,test]"
 ```
 
 ## Command Line Usage
@@ -255,7 +269,7 @@ async def safe_query():
 - Configuration inheritance from CLAIF
 - Compatible with existing codebases
 
-## How It Works
+## How CLAIF_COD Works
 
 ### Architecture Overview
 
@@ -263,73 +277,95 @@ async def safe_query():
 ┌─────────────────────┐
 │    User Code        │
 ├─────────────────────┤
-│    CLAIF Core       │  ← Unified interface
+│    CLAIF Core       │  ← Unified interface (Message types)
 ├─────────────────────┤
-│    CLAIF_COD        │  ← This package
+│    CLAIF_COD        │  ← This package (provider adapter)
 ├─────────────────────┤
-│ CodexTransport      │  ← Subprocess management
+│   CodexClient       │  ← Client orchestration layer
 ├─────────────────────┤
-│  Codex CLI Binary   │  ← External process
+│  CodexTransport     │  ← Async subprocess management
+├─────────────────────┤
+│  Codex CLI Binary   │  ← External process (JSON I/O)
 └─────────────────────┘
 ```
 
 ### Codebase Structure
 
+The package is organized into five main modules:
+
 ```
 src/claif_cod/
 ├── __init__.py       # Main entry point, exports query() function
-├── __version__.py    # Version information (auto-generated)
-├── cli.py           # Fire-based CLI with rich output
-├── client.py        # Client logic for query lifecycle
-├── transport.py     # Subprocess communication layer
+├── cli.py           # Fire-based CLI with rich terminal output
+├── client.py        # Client orchestration and message conversion
+├── transport.py     # Async subprocess communication layer
 └── types.py         # Type definitions and data structures
 ```
 
 ### Component Details
 
-#### `__init__.py` - Main Entry Point
-- Exports the primary `query()` async function
-- Handles conversion between CLAIF and Codex options
-- Provides version information
-- Implements the CLAIF provider interface
+#### `__init__.py` - Main Entry Point (22 lines)
+- Exports the primary `query()` async generator function
+- Converts CLAIF's `ClaifOptions` to `CodexOptions`
+- Imports from `claif.common` for unified Message types
+- Uses loguru for debug logging
+- Version string: "0.1.0"
 
-#### `cli.py` - Command Line Interface
-- Fire-based CLI framework
-- Rich terminal output with tables and progress
-- Commands: query, stream, models, health, config, modes
-- Handles user input and formatting
+#### `cli.py` - Command Line Interface (334 lines)
+- `CodexCLI` class with Fire-based commands
+- Rich console output with progress spinners and tables
+- Commands implemented:
+  - `query`: Execute a prompt with options
+  - `stream`: Real-time streaming responses
+  - `models`: List available models
+  - `model_info`: Show model details
+  - `modes`: List action modes
+  - `health`: Check service status
+  - `config`: Manage configuration
+  - `version`: Show version info
+- Async execution with `asyncio.run()`
+- Response formatting (text, json, code modes)
 
-#### `client.py` - Client Logic
-- Manages the query lifecycle
-- Validates options and parameters
-- Coordinates with transport layer
-- Normalizes messages to CLAIF format
+#### `client.py` - Client Orchestration (55 lines)
+- `CodexClient` class manages transport lifecycle
+- Module-level `_client` instance for reuse
+- Converts `CodexMessage` to CLAIF `Message` format
+- Handles connection/disconnection
+- Error propagation from transport layer
 
-#### `transport.py` - Transport Layer
-- `CodexTransport` class for subprocess management
-- CLI path discovery (env var → PATH → common locations)
-- Command building with proper escaping
-- JSON streaming parser for output
-- Platform-specific handling (Windows, macOS, Linux)
-- Timeout and error management
+#### `transport.py` - Async Subprocess Layer (171 lines)
+- `CodexTransport` class with anyio for async subprocess
+- Key methods:
+  - `_find_cli_path()`: Platform-aware CLI discovery
+  - `_build_command()`: Construct CLI arguments
+  - `send_query()`: Execute subprocess and stream output
+  - `_parse_output_line()`: JSON line parsing
+- Uses `anyio.open_process()` for subprocess management
+- Graceful timeout handling with process termination
+- Stderr collection for error reporting
 
-#### `types.py` - Type Definitions
-- `CodexOptions`: Configuration dataclass
-- `CodexMessage`: Message structure from Codex
-- `TextBlock`, `CodeBlock`, `ErrorBlock`: Content types
-- `ResultMessage`: Metadata and results
-- Type hints for better IDE support
+#### `types.py` - Type Definitions (142 lines)
+- Data classes with `@dataclass` decorator:
+  - `CodexOptions`: All configuration options
+  - `ContentBlock` (base class)
+  - `TextBlock`, `CodeBlock`, `ErrorBlock`: Content types
+  - `CodexMessage`: Main message structure
+  - `ResultMessage`: Completion metadata
+- Method `to_claif_message()` for format conversion
+- Comprehensive type hints for IDE support
 
 ### Message Flow
 
-1. **User Input** → CLI or Python API
-2. **Option Conversion** → CLAIF options to CodexOptions
-3. **Transport Layer** → Spawn Codex CLI subprocess
-4. **Command Building** → Construct CLI arguments
-5. **Execution** → Run subprocess with timeout
-6. **Output Parsing** → Stream JSON lines
-7. **Message Normalization** → Convert to CLAIF format
-8. **User Output** → Yield messages to caller
+1. **User Input** → CLI (`fire.Fire`) or Python API
+2. **Option Conversion** → `ClaifOptions` → `CodexOptions` in `__init__.py`
+3. **Client Layer** → `CodexClient.query()` manages lifecycle
+4. **Transport Layer** → `CodexTransport.send_query()` spawns subprocess
+5. **CLI Discovery** → Check env var → PATH → common locations
+6. **Command Building** → Construct args: `[cli_path, "query", "--model", model, ...]`
+7. **Subprocess Execution** → `anyio.open_process()` with JSON streaming
+8. **Output Parsing** → Line-by-line JSON parsing in `_parse_output_line()`
+9. **Message Conversion** → `CodexMessage.to_claif_message()` normalizes format
+10. **Async Yielding** → Messages yielded back through async generators
 
 ### Configuration
 
@@ -355,10 +391,14 @@ default = "o4-mini"
 
 ### Models Available
 
-- **o4-mini**: Fast, efficient model for quick tasks
+The package supports any model that the Codex CLI accepts. Common models include:
+
+- **o4-mini**: Fast, efficient model for quick tasks (default)
 - **o4**: Balanced model for general use
 - **o4-preview**: Latest features and capabilities
 - **o3.5**: Previous generation model
+
+The actual available models depend on your Codex CLI version and API access.
 
 ### Action Modes
 
@@ -370,41 +410,68 @@ default = "o4-mini"
 
 1. **Always start with review mode** to understand what changes will be made
 2. **Use specific, clear prompts** for better results
-3. **Set appropriate timeouts** for complex operations
+3. **Set appropriate timeouts** for complex operations (default: 180s)
 4. **Test generated code** thoroughly before production use
 5. **Use version control** before applying automated changes
 6. **Configure working directory** to limit scope of operations
+7. **Check CLI path** with `health` command if encountering issues
+8. **Use verbose mode** (`--verbose`) for debugging transport issues
 
 ## Development
 
+### Setting Up Development Environment
+```bash
+# Clone the repository
+git clone https://github.com/twardoch/claif_cod.git
+cd claif_cod
+
+# Install with dev dependencies
+pip install -e ".[dev,test]"
+
+# Install pre-commit hooks
+pre-commit install
+```
+
 ### Running Tests
 ```bash
-# Run all tests
+# Run all tests with pytest
 pytest
 
 # Run with coverage
 pytest --cov=claif_cod --cov-report=html
 
 # Run specific test file
-pytest tests/test_transport.py
+pytest tests/test_package.py -v
 ```
 
-### Linting and Formatting
+### Code Quality Tools
 ```bash
-# Run linting
-ruff check src/claif_cod tests
-
-# Format code
+# Format code with ruff
 ruff format src/claif_cod tests
 
-# Type checking
+# Check linting
+ruff check src/claif_cod tests --fix
+
+# Type checking with mypy
 mypy src/claif_cod
+
+# Run all formatters (as per CLAUDE.md)
+fd -e py -x autoflake {}
+fd -e py -x pyupgrade --py312-plus {}
+fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
+fd -e py -x ruff format --respect-gitignore --target-version py312 {}
 ```
 
-### Building Documentation
+### Building and Publishing
 ```bash
-# Build Sphinx docs
-cd docs && make html
+# Build distribution
+python -m build
+
+# Check distribution
+twine check dist/*
+
+# Upload to PyPI (maintainers only)
+twine upload dist/*
 ```
 
 ## Contributing
