@@ -2,7 +2,7 @@
 
 ## Quickstart
 
-CLAIF_COD is an async Python wrapper that integrates CLI-based AI code generation tools into the CLAIF framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks.
+CLAIF_COD is an async Python wrapper that integrates CLI-based AI code generation tools into the CLAIF framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks. Version 1.0.5 improves subprocess reliability by switching to native asyncio.
 
 ```bash
 pip install claif_cod && claif-cod query "Write a Python function to calculate fibonacci numbers"

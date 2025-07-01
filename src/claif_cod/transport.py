@@ -1,200 +1,169 @@
-"""Transport layer for Codex CLI communication."""
+"""Transport layer for CLAIF Codex CLI communication."""
 
 import json
 import os
-import shutil
-import sys
-import uuid
-from collections.abc import AsyncIterator
+import shlex
+import subprocess
 from pathlib import Path
-from typing import Any
 
-import anyio
-from claif.common import TransportError
+from claif.common import InstallError, TransportError, find_executable
 from loguru import logger
 
-from claif_cod.types import CodeBlock, CodexMessage, CodexOptions, ContentBlock, ErrorBlock, ResultMessage, TextBlock
+from .types import CodexOptions, CodexResponse
 
 
 class CodexTransport:
     """Transport for communicating with Codex CLI."""
 
-    def __init__(self):
-        self.process: anyio.Process | None = None
-        self.session_id = str(uuid.uuid4())
+    def __init__(self, verbose: bool = False):
+        """Initialize transport.
+
+        Args:
+            verbose: Enable verbose logging
+        """
+        self.verbose = verbose
+        logger.debug("Initialized Codex transport")
 
     async def connect(self) -> None:
         """Initialize transport (no-op for subprocess)."""
+        pass
 
     async def disconnect(self) -> None:
-        """Cleanup transport."""
-        if self.process:
-            try:
-                self.process.terminate()
-                await self.process.wait()
-            except Exception as e:
-                # Disconnect errors during cleanup are usually not critical
-                logger.debug(f"Error during disconnect (expected during cleanup): {e}")
-            finally:
-                self.process = None
+        """Cleanup transport (no-op for subprocess)."""
+        pass
 
-    async def send_query(self, prompt: str, options: CodexOptions) -> AsyncIterator[CodexMessage | ResultMessage]:
-        """Send query to Codex and yield responses."""
+    async def send_query(self, prompt: str, options: CodexOptions):
+        """Send query to Codex CLI (async wrapper around execute).
+
+        This is an async wrapper around the synchronous execute method
+        to match the interface expected by other transports.
+        """
+        # Use the existing execute method
+        response = self.execute(prompt, options)
+
+        # Convert to the message format expected by the client
+        from .types import CodexMessage, ResultMessage
+
+        # Yield the response as a CodexMessage
+        from .types import TextBlock
+
+        yield CodexMessage(
+            role=response.role,
+            content=[TextBlock(text=response.content)],
+        )
+
+        # Yield a result message
+        yield ResultMessage(
+            duration=0.0,  # We don't track duration in sync execute
+            session_id="codex",
+        )
+
+    def execute(self, prompt: str, options: CodexOptions) -> CodexResponse:
+        """Execute a Codex command.
+
+        Args:
+            prompt: The prompt to send
+            options: Codex options
+
+        Returns:
+            CodexResponse containing the result
+
+        Raises:
+            TransportError: If execution fails
+        """
         command = self._build_command(prompt, options)
         env = self._build_env()
         cwd = options.working_dir or options.cwd
 
-        if options.verbose:
+        if self.verbose:
             logger.debug(f"Running command: {' '.join(command)}")
             logger.debug(f"Working directory: {cwd}")
 
         try:
-            import asyncio
-
-            start_time = anyio.current_time()
-
-            # Use asyncio subprocess instead of anyio for reliability
-            process = await asyncio.create_subprocess_exec(
-                *command,
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
                 env=env,
+                timeout=options.timeout,
                 cwd=cwd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
             )
 
-            self.process = process
+            if result.returncode != 0:
+                error_msg = f"Codex command failed (exit code {result.returncode})"
+                if result.stderr:
+                    error_msg += f": {result.stderr}"
+                raise TransportError(error_msg)
 
-            # Wait for process and get all output at once
-            stdout_data, stderr_data = await process.communicate()
+            # Parse response - Codex CLI outputs JSONL format
+            content = ""
+            role = "assistant"
+            raw_response = None
 
-            duration = anyio.current_time() - start_time
+            if result.stdout.strip():
+                try:
+                    # Parse each line as separate JSON
+                    for line in result.stdout.strip().split("\n"):
+                        if line.strip():
+                            data = json.loads(line)
 
-            # Decode the output
-            stdout_output = stdout_data.decode("utf-8").strip() if stdout_data else ""
-            stderr_output = stderr_data.decode("utf-8").strip() if stderr_data else ""
+                            # Look for assistant message with content
+                            if (
+                                data.get("type") == "message"
+                                and data.get("role") == "assistant"
+                                and data.get("status") == "completed"
+                            ):
+                                # Extract text from content blocks
+                                content_blocks = data.get("content", [])
+                                text_parts = []
+                                for block in content_blocks:
+                                    if block.get("type") == "output_text":
+                                        text_parts.append(block.get("text", ""))
 
-            # Check for errors
-            if process.returncode != 0:
-                error_msg = stderr_output or "Unknown error"
-                yield ResultMessage(
-                    error=True,
-                    message=f"Codex CLI error: {error_msg}",
-                    duration=duration,
-                    session_id=self.session_id,
-                    model=options.model,
-                )
-                return
+                                content = "\n".join(text_parts)
+                                role = data.get("role", "assistant")
+                                raw_response = data
+                                break
 
-            # Process output line by line for streaming JSON
-            if stdout_output:
-                for line in stdout_output.split("\n"):
-                    line = line.strip()
-                    if not line:
-                        continue
+                except json.JSONDecodeError:
+                    # Fallback for non-JSON output
+                    content = result.stdout
+                    raw_response = {"raw_output": result.stdout}
 
-                    try:
-                        data = json.loads(line)
-                        message = self._parse_message(data)
-                        if message:
-                            yield message
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"Failed to parse JSON line: {e}")
-                        logger.debug(f"Raw line: {line}")
-                        # Treat as plain text if not JSON
-                        yield CodexMessage(role="assistant", content=[TextBlock(text=line)])
+            if not content:
+                content = result.stdout or "No response received"
 
-            # Send success result message
-            yield ResultMessage(
-                duration=duration,
-                session_id=self.session_id,
+            return CodexResponse(
+                content=content,
+                role=role,
                 model=options.model,
+                usage={},
+                raw_response=raw_response,
             )
 
+        except subprocess.TimeoutExpired as e:
+            msg = f"Codex command timed out after {options.timeout}s"
+            raise TransportError(msg) from e
         except Exception as e:
-            logger.error(f"Transport error: {e}")
-            yield ResultMessage(
-                error=True,
-                message=str(e),
-                session_id=self.session_id,
-                model=options.model,
-            )
-
-    def _parse_message(self, data: dict[str, Any]) -> CodexMessage | ResultMessage | None:
-        """Parse a JSON message into appropriate type."""
-        msg_type = data.get("type")
-
-        # Skip input_text blocks (these are just echoing the user's prompt)
-        if msg_type == "input_text":
-            return None
-
-        if msg_type == "result":
-            return ResultMessage(
-                type="result",
-                duration=data.get("duration"),
-                error=data.get("error", False),
-                message=data.get("message"),
-                session_id=data.get("session_id"),
-                model=data.get("model"),
-                token_count=data.get("token_count"),
-            )
-
-        # Parse as CodexMessage
-        role = data.get("role", "assistant")
-        content = data.get("content", [])
-        content_blocks: list[ContentBlock] = []
-
-        if isinstance(content, str):
-            # Handle plain string content
-            content_blocks.append(TextBlock(text=content))
-        else:
-            # Parse content blocks
-            for block in content:
-                block_type = block.get("type")
-
-                if block_type == "output_text":
-                    content_blocks.append(
-                        TextBlock(
-                            type=block_type,
-                            text=block.get("text", ""),
-                        )
-                    )
-                elif block_type == "code":
-                    content_blocks.append(
-                        CodeBlock(
-                            type=block_type,
-                            language=block.get("language", ""),
-                            content=block.get("content", ""),
-                        )
-                    )
-                elif block_type == "error":
-                    content_blocks.append(
-                        ErrorBlock(
-                            type=block_type,
-                            error_message=block.get("error_message", ""),
-                        )
-                    )
-                elif block_type == "input_text":
-                    # Skip input_text blocks (these are user prompts echoed back)
-                    continue
-                else:
-                    # Unknown block type - treat as text (common during normal operation)
-                    logger.debug(f"Unknown block type: {block_type}")
-                    content_blocks.append(
-                        TextBlock(
-                            text=str(block),
-                        )
-                    )
-
-        # Skip messages that only contain input_text (user prompts echoed back)
-        if not content_blocks:
-            return None
-
-        return CodexMessage(role=role, content=content_blocks)
+            msg = f"Failed to execute Codex command: {e}"
+            raise TransportError(msg) from e
 
     def _build_command(self, prompt: str, options: CodexOptions) -> list[str]:
         """Build command line arguments."""
-        cli_path = self._find_cli()
-        command = [cli_path]
+        exec_path = getattr(options, "exec_path", None)
+        cli_path = self._find_cli(exec_path)
+
+        # Check if this is a single file path (possibly with spaces) or a command with arguments
+        path_obj = Path(cli_path)
+        if path_obj.exists():
+            # This is a file path, treat as single argument even if it has spaces
+            command = [cli_path]
+        elif " " in cli_path:
+            # This is a command with arguments (e.g., "deno run script.js")
+            command = shlex.split(cli_path)
+        else:
+            # Simple command name
+            command = [cli_path]
 
         # Model
         if options.model:
@@ -217,58 +186,44 @@ class CodexTransport:
             command.append("--full-auto")
 
         # Quiet mode for non-interactive output
-        if True:  # FIXME: hasattr(options, "quiet") and options.quiet:
-            command.append("-q")
+        command.append("-q")
 
-        # Add verbose/debug support
-        if options.verbose:
-            # Codex doesn't have a debug flag, but we can use quiet mode
-            pass
+        # Add images if provided (Codex supports -i flag)
+        if options.images:
+            for image_path in options.images:
+                command.extend(["-i", image_path])
 
-        # Prompt as positional argument (not with -q flag)
+        # Prompt as positional argument
         command.append(prompt)
 
         return command
 
     def _build_env(self) -> dict:
         """Build environment variables."""
-        env = os.environ.copy()
+        try:
+            from claif.common.utils import inject_claif_bin_to_path
+
+            env = inject_claif_bin_to_path()
+        except ImportError:
+            env = os.environ.copy()
+
         env["CODEX_SDK"] = "1"
         env["CLAIF_PROVIDER"] = "codex"
         return env
 
-    def _find_cli(self) -> str:
-        """Find Codex CLI executable."""
-        # Check if specified in environment
-        if cli_path := os.environ.get("CODEX_CLI_PATH"):
-            if Path(cli_path).exists():
-                return cli_path
+    def _find_cli(self, exec_path: str | None = None) -> str:
+        """Find Codex CLI executable using simplified 3-mode logic.
 
-        # Search in PATH
-        if cli := shutil.which("codex"):
-            return cli
+        Args:
+            exec_path: Optional explicit path provided by user
 
-        # Search common locations
-        search_paths = [
-            Path.home() / ".local" / "bin" / "codex",
-            Path("/usr/local/bin/codex"),
-            Path("/opt/codex/bin/codex"),
-        ]
+        Returns:
+            Path to the executable
 
-        # Add platform-specific paths
-        if sys.platform == "darwin":
-            search_paths.append(Path("/opt/homebrew/bin/codex"))
-        elif sys.platform == "win32":
-            search_paths.extend(
-                [
-                    Path("C:/Program Files/Codex/codex.exe"),
-                    Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "codex" / "codex.exe",
-                ]
-            )
-
-        for path in search_paths:
-            if path.exists():
-                return str(path)
-
-        msg = "Codex CLI not found. Please install it or set CODEX_CLI_PATH environment variable."
-        raise TransportError(msg)
+        Raises:
+            TransportError: If executable cannot be found
+        """
+        try:
+            return find_executable("codex", exec_path)
+        except InstallError as e:
+            raise TransportError(str(e)) from e

@@ -41,8 +41,16 @@ class CodexClient:
             await self.transport.disconnect()
 
 
-# Module-level client instance
-_client = CodexClient()
+# Module-level client instance (lazy-loaded)
+_client = None
+
+
+def _get_client() -> CodexClient:
+    """Get or create the client instance."""
+    global _client
+    if _client is None:
+        _client = CodexClient()
+    return _client
 
 
 async def query(
@@ -50,5 +58,6 @@ async def query(
     options: CodexOptions | None = None,
 ) -> AsyncIterator[Message]:
     """Query Codex using the default client."""
-    async for message in _client.query(prompt, options):
+    client = _get_client()
+    async for message in client.query(prompt, options):
         yield message

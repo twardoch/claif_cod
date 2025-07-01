@@ -13,7 +13,9 @@ from claif.common import (
     ResponseMetrics,
     format_metrics,
     format_response,
+    install_provider,
     load_config,
+    uninstall_provider,
 )
 from loguru import logger
 from rich.console import Console
@@ -51,6 +53,8 @@ class CodexCLI:
         timeout: int | None = None,
         output_format: str = "text",
         show_metrics: bool = False,
+        images: str | None = None,
+        exec: str | None = None,
     ) -> None:
         """Execute a query to Codex.
 
@@ -67,7 +71,14 @@ class CodexCLI:
             timeout: Timeout in seconds
             output_format: Output format (text, json, code)
             show_metrics: Show response metrics
+            images: Comma-separated image paths or URLs
+            exec: Executable path or method (bun/deno/npx)
         """
+        # Process images
+        image_paths = None
+        if images:
+            image_paths = self._process_images(images)
+
         options = CodexOptions(
             model=model,
             temperature=temperature,
@@ -79,6 +90,8 @@ class CodexCLI:
             full_auto=full_auto,
             timeout=timeout,
             verbose=self.config.verbose,
+            images=image_paths,
+            exec_path=exec,
         )
 
         start_time = time.time()
@@ -304,6 +317,46 @@ class CodexCLI:
             console.print(f"[red]Unknown action: {action}[/red]")
             console.print("Available actions: show, set")
 
+    def _process_images(self, images: str) -> list[str]:
+        """Process comma-separated image paths or URLs.
+
+        Args:
+            images: Comma-separated image paths or URLs
+
+        Returns:
+            List of image file paths (downloads URLs to temp files)
+        """
+        import tempfile
+        import urllib.request
+        from pathlib import Path
+
+        image_list = [img.strip() for img in images.split(",") if img.strip()]
+        processed_paths = []
+
+        for img in image_list:
+            if img.startswith(("http://", "https://")):
+                # Download URL to temp file
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=Path(img).suffix or ".jpg") as tmp_file:
+                        logger.debug(f"Downloading image from {img}")
+                        with urllib.request.urlopen(img) as response:
+                            tmp_file.write(response.read())
+                        processed_paths.append(tmp_file.name)
+                        logger.debug(f"Downloaded to {tmp_file.name}")
+                except Exception as e:
+                    console.print(f"[red]Failed to download image {img}: {e}[/red]")
+                    continue
+            else:
+                # Local file path
+                path = Path(img).expanduser().resolve()
+                if path.exists():
+                    processed_paths.append(str(path))
+                else:
+                    console.print(f"[red]Image file not found: {img}[/red]")
+                    continue
+
+        return processed_paths
+
     def modes(self) -> None:
         """Show available action modes."""
         console.print("[bold]Codex Action Modes:[/bold]")
@@ -323,6 +376,133 @@ class CodexCLI:
 
         console.print(table)
         console.print("\n[yellow]Tip: Use --action-mode <mode> to set the mode[/yellow]")
+
+    def benchmark(
+        self,
+        prompt: str = "What is 2+2?",
+        iterations: int = 5,
+        model: str = "o4-mini",
+    ) -> None:
+        """Benchmark Codex performance.
+
+        Args:
+            prompt: Prompt to use for benchmarking
+            iterations: Number of iterations
+            model: Model to benchmark
+        """
+        console.print("[bold]Benchmarking Codex[/bold]")
+        console.print(f"Prompt: {prompt}")
+        console.print(f"Iterations: {iterations}")
+        console.print(f"Model: {model}\n")
+
+        times = []
+        options = CodexOptions(model=model, timeout=30)
+
+        with Progress() as progress:
+            task = progress.add_task("Running benchmark...", total=iterations)
+
+            for i in range(iterations):
+                start = time.time()
+                try:
+                    asyncio.run(self._benchmark_iteration(prompt, options))
+                    duration = time.time() - start
+                    times.append(duration)
+                except Exception as e:
+                    console.print(f"[red]Iteration {i + 1} failed: {e}[/red]")
+
+                progress.update(task, advance=1)
+
+        if times:
+            avg_time = sum(times) / len(times)
+            min_time = min(times)
+            max_time = max(times)
+
+            console.print("\n[bold]Results:[/bold]")
+            console.print(f"Average: {avg_time:.3f}s")
+            console.print(f"Min: {min_time:.3f}s")
+            console.print(f"Max: {max_time:.3f}s")
+        else:
+            console.print("[red]No successful iterations[/red]")
+
+    async def _benchmark_iteration(self, prompt: str, options: CodexOptions) -> None:
+        """Run a single benchmark iteration."""
+        message_count = 0
+        async for _ in query(prompt, options):
+            message_count += 1
+        if message_count == 0:
+            msg = "No response received"
+            raise Exception(msg)
+
+    def install(self) -> None:
+        """Install Codex provider (npm package + bundling + installation).
+
+        This will:
+        1. Install bun if not available
+        2. Install the latest @openai/codex package
+        3. Bundle it into a standalone executable
+        4. Install the executable to ~/.local/bin (or equivalent)
+        """
+        from claif_cod.install import install_codex
+
+        console.print("[bold]Installing Codex provider...[/bold]")
+        result = install_codex()
+
+        if result["installed"]:
+            console.print("[green]✅ Codex provider installed successfully![/green]")
+            console.print("[green]You can now use the 'codex' command from anywhere[/green]")
+        else:
+            console.print(f"[red]❌ Failed to install Codex provider: {result.get('message', 'Unknown error')}[/red]")
+            if result.get("failed"):
+                console.print(f"[red]Failed components: {', '.join(result['failed'])}[/red]")
+            sys.exit(1)
+
+    def uninstall(self) -> None:
+        """Uninstall Codex provider (remove bundled executable).
+
+        This will remove the bundled Codex executable from the install directory.
+        """
+        from claif_cod.install import uninstall_codex
+
+        console.print("[bold]Uninstalling Codex provider...[/bold]")
+        result = uninstall_codex()
+
+        if result["uninstalled"]:
+            console.print("[green]✅ Codex provider uninstalled successfully![/green]")
+        else:
+            console.print(f"[red]❌ Failed to uninstall Codex provider: {result.get('message', 'Unknown error')}[/red]")
+            if result.get("failed"):
+                console.print(f"[red]Failed components: {', '.join(result['failed'])}[/red]")
+            sys.exit(1)
+
+    def status(self) -> None:
+        """Show Codex provider installation status."""
+        from claif.common.install import find_executable, get_install_dir
+
+        console.print("[bold]Codex Provider Status[/bold]\n")
+
+        # Check bundled executable
+        install_dir = get_install_dir()
+        bundled_path = install_dir / "codex"
+
+        if bundled_path.exists():
+            console.print(f"[green]✓ Bundled executable: {bundled_path}[/green]")
+        else:
+            console.print(f"[yellow]○ Bundled executable: Not installed[/yellow]")
+
+        # Check external executable
+        try:
+            external_path = find_executable("codex")
+            console.print(f"[green]✓ Found executable: {external_path}[/green]")
+        except Exception:
+            console.print("[red]✗ No external codex executable found[/red]")
+
+        # Show install directory in PATH status
+        path_env = os.environ.get("PATH", "")
+        if str(install_dir) in path_env:
+            console.print(f"[green]✓ Install directory in PATH[/green]")
+        else:
+            console.print(f"[yellow]⚠ Install directory not in PATH: {install_dir}[/yellow]")
+            console.print('[yellow]  Add to PATH with: export PATH="$HOME/.local/bin:$PATH"[/yellow]')
 
 
 def main():

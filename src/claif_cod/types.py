@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 
 from claif.common import Message, MessageRole
 from claif.common import TextBlock as ClaifTextBlock
@@ -51,6 +51,8 @@ class CodexOptions:
     top_p: float | None = None
     timeout: int | None = None
     verbose: bool = False
+    exec_path: str | None = None
+    images: list[str] | None = None
 
     def __post_init__(self):
         # Handle cwd alias
@@ -81,6 +83,22 @@ class CodexMessage:
 
         role = MessageRole.ASSISTANT if self.role == "assistant" else MessageRole.USER
         return Message(role=role, content=content)
+
+
+@dataclass
+class CodexResponse:
+    """Response from Codex CLI."""
+
+    content: str
+    role: str = "assistant"
+    model: str | None = None
+    usage: dict[str, Any] | None = None
+    raw_response: dict[str, Any] | None = None
+
+    def to_claif_message(self) -> Message:
+        """Convert to CLAIF message."""
+        role = MessageRole.ASSISTANT if self.role == "assistant" else MessageRole.USER
+        return Message(role=role, content=self.content)
 
 
 @dataclass
