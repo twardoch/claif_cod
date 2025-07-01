@@ -1,0 +1,228 @@
+
+# OPENAI CODEX CLI JS
+
+
+This API documentation provides a detailed overview of the `codex` repository, which is a command-line interface (CLI) tool for interacting with OpenAI's Codex models. The repository is organized into two main parts: `codex-cli`, a Node.js-based CLI, and `codex-rs`, a Rust-based implementation.
+
+## \<u\>**File Hierarchy**\</u\>
+
+The repository has the following directory structure:
+
+```
+codex-cli/
+├── bin/
+│   └── codex.js
+├── examples/
+│   ├── build-codex-demo/
+│   ├── camerascii/
+│   ├── impossible-pong/
+│   └── prompt-analyzer/
+├── scripts/
+├── src/
+│   ├── components/
+│   ├── hooks/
+│   └── utils/
+└── tests/
+codex-rs/
+├── ansi-escape/
+├── apply-patch/
+├── cli/
+├── common/
+├── core/
+├── docs/
+├── exec/
+├── execpolicy/
+├── file-search/
+├── linux-sandbox/
+├── login/
+├── mcp-client/
+├── mcp-server/
+├── mcp-types/
+├── scripts/
+└── tui/
+```
+
+-----
+
+## \<u\>**`codex-cli` API Reference**\</u\>
+
+### **`bin/codex.js`**
+
+  * **Purpose:** This is the main entry point for the `codex-cli`. It determines whether to run the JavaScript implementation or a pre-compiled Rust binary based on the `CODEX_RUST` environment variable.
+  * **Usage:**
+    ```bash
+    node bin/codex.js [options] [prompt]
+    ```
+
+-----
+
+### **`examples/`**
+
+This directory contains several example projects that demonstrate how to use the `codex-cli`. Each example has a `run.sh` script to execute the task and a `task.yaml` file that defines the prompt for the Codex model.
+
+  * **`build-codex-demo`**: Re-implements the original OpenAI Codex demo, creating a web-based interface for interacting with the Codex model.
+  * **`camerascii`**: Creates a webpage that uses a webcam to generate ASCII art from the video feed.
+  * **`impossible-pong`**: A simple Pong game with different difficulty levels.
+  * **`prompt-analyzer`**: A data science application for clustering and analyzing text prompts.
+
+-----
+
+### **`scripts/`**
+
+This directory contains various build and utility scripts for the `codex-cli`.
+
+  * **`build_container.sh`**: Builds a Docker container for the `codex-cli`.
+  * **`init_firewall.sh`**: Initializes a firewall for the Docker container, restricting network access to only the necessary domains.
+  * **`install_native_deps.sh`**: Installs native dependencies for the `codex-cli`, including the Rust-based sandbox binaries.
+  * **`run_in_container.sh`**: A wrapper script for running the `codex-cli` inside a Docker container.
+  * **`stage_release.sh`**: Stages a new release of the `codex-cli` package for `npm`.
+
+-----
+
+### **`src/`**
+
+This directory contains the source code for the `codex-cli`, written in TypeScript and React.
+
+#### **`components/`**
+
+This directory contains the React components that make up the user interface of the `codex-cli`.
+
+  * **`chat/`**: Components related to the chat interface, such as message history, input, and response display.
+  * **`onboarding/`**: Components for the initial onboarding and approval mode selection.
+  * **`select-input/`**: A reusable select input component.
+  * **`vendor/`**: Third-party components, such as spinners and text inputs.
+
+#### **`hooks/`**
+
+This directory contains custom React hooks used in the `codex-cli`.
+
+  * **`use-confirmation.ts`**: A hook for handling confirmation prompts.
+  * **`use-terminal-size.ts`**: A hook for getting the current terminal size.
+
+#### **`utils/`**
+
+This directory contains utility functions for various tasks, such as handling agent loops, managing files, and interacting with the OpenAI API.
+
+  * **`agent/`**: Contains the core logic for the agent loop, including sandboxing and command execution.
+  * **`logger/`**: A simple logger for debugging.
+  * **`singlepass/`**: Utilities for the "full-context" editing mode.
+  * **`storage/`**: Functions for managing command history and saving rollouts.
+
+-----
+
+## \<u\>**`codex-rs` API Reference**\</u\>
+
+### **`ansi-escape/`**
+
+  * **Purpose:** A small utility crate for parsing ANSI escape codes in terminal output.
+
+### **`apply-patch/`**
+
+  * **Purpose:** A library for applying patches to files in a format similar to `git apply`.
+
+### **`cli/`**
+
+  * **Purpose:** The main entry point for the Rust-based `codex` CLI. It parses command-line arguments and dispatches to the appropriate subcommands.
+
+### **`common/`**
+
+  * **Purpose:** A crate for sharing common utilities and types across the `codex-rs` workspace.
+
+### **`core/`**
+
+  * **Purpose:** The core library for the `codex-rs` implementation, containing the main `Codex` struct and the logic for interacting with the OpenAI API.
+
+### **`docs/`**
+
+  * **Purpose:** Contains documentation for the `codex-rs` project, including the protocol specification.
+
+### **`exec/`**
+
+  * **Purpose:** A library for executing shell commands and managing sandboxing.
+
+### **`execpolicy/`**
+
+  * **Purpose:** A tool for defining and enforcing execution policies for shell commands.
+
+### **`file-search/`**
+
+  * **Purpose:** A utility for searching for files in a directory.
+
+### **`linux-sandbox/`**
+
+  * **Purpose:** A library for creating and managing sandboxes on Linux using Landlock and seccomp.
+
+### **`login/`**
+
+  * **Purpose:** A utility for handling the login flow with ChatGPT to obtain an API key.
+
+### **`mcp-client/` and `mcp-server/`**
+
+  * **Purpose:** These crates implement the Model Context Protocol (MCP) for communicating with external tools and services.
+
+### **`mcp-types/`**
+
+  * **Purpose:** Contains the generated types for the Model Context Protocol.
+
+### **`scripts/`**
+
+  * **Purpose:** Contains build and utility scripts for the `codex-rs` project.
+
+### **`tui/`**
+
+  * **Purpose:** A terminal user interface (TUI) for interacting with the `codex-rs` agent.
+
+-----
+
+This documentation provides a high-level overview of the `codex` repository. For more detailed information, please refer to the source code and the individual `README.md` files in each directory.
+  Usage
+    $ codex [options] <prompt>
+    $ codex completion <bash|zsh|fish>
+
+  Options
+    --version                       Print version and exit
+
+    -h, --help                      Show usage and exit
+    -m, --model <model>             Model to use for completions (default: codex-mini-latest)
+    -p, --provider <provider>       Provider to use for completions (default: openai)
+    -i, --image <path>              Path(s) to image files to include as input
+    -v, --view <rollout>            Inspect a previously saved rollout instead of starting a session
+    --history                       Browse previous sessions
+    --login                         Start a new sign in flow
+    --free                          Retry redeeming free credits
+    -q, --quiet                     Non-interactive mode that only prints the assistant's final output
+    -c, --config                    Open the instructions file in your editor
+    -w, --writable-root <path>      Writable folder for sandbox in full-auto mode (can be specified multiple times)
+    -a, --approval-mode <mode>      Override the approval policy: 'suggest', 'auto-edit', or 'full-auto'
+
+    --auto-edit                Automatically approve file edits; still prompt for commands
+    --full-auto                Automatically approve edits and commands when executed in the sandbox
+
+    --no-project-doc           Do not automatically include the repository's 'AGENTS.md'
+    --project-doc <file>       Include an additional markdown file at <file> as context
+    --full-stdout              Do not truncate stdout/stderr from command outputs
+    --notify                   Enable desktop notifications for responses
+
+    --disable-response-storage Disable server‑side response storage (sends the
+                               full conversation context with every request)
+
+    --flex-mode               Use "flex-mode" processing mode for the request (only supported
+                              with models o3 and o4-mini)
+
+    --reasoning <effort>      Set the reasoning effort level (low, medium, high) (default: high)
+
+  Dangerous options
+    --dangerously-auto-approve-everything
+                               Skip all confirmation prompts and execute commands without
+                               sandboxing. Intended solely for ephemeral local testing.
+
+  Experimental options
+    -f, --full-context         Launch in "full-context" mode which loads the entire repository
+                               into context and applies a batch of edits in one go. Incompatible
+                               with all other flags, except for --model.
+
+  Examples
+    $ codex "Write and run a python program that prints ASCII art"
+    $ codex -q "fix build issues"
+    $ codex completion bash
+
