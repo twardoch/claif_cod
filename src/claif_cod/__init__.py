@@ -1,4 +1,4 @@
-"""CLAIF Codex wrapper."""
+"""Claif Codex wrapper."""
 
 from collections.abc import AsyncIterator
 

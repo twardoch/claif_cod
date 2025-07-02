@@ -4,7 +4,7 @@ This document provides guidance for AI agents working on the`claif_cod` codebase
 
 ## Project Overview
 
-**CLAIF_COD** is a provider package for theClaif framework that wraps OpenAI's Codex CLI tool. It enables AI-powered code generation and manipulation through async subprocess management.
+**Claif_COD** is a provider package for the Claif framework that wraps OpenAI's Codex CLI tool. It enables AI-powered code generation and manipulation through async subprocess management.
 
 ### Key Components
 
@@ -199,16 +199,16 @@ def new_command(self, arg1: str, arg2: int = 10) -> None:
 
 ### Completed Features ✅
 
-- [x] Async subprocess management with anyio
-- [x] JSON streaming message parser
-- [x] Fire-based CLI with rich output
-- [x] Message format conversion (Codex →Claif)
-- [x] Platform-aware CLI path discovery
-- [x] Timeout handling with process cleanup
-- [x] Error propagation and logging
-- [x] Type hints and dataclasses
-- [x] Basic health check command
-- [x] Model listing and info commands
+
+
+
+
+
+
+
+
+
+
 
 ### Pending Features ⚠️
 

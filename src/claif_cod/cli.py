@@ -38,7 +38,7 @@ def _print_warning(message: str) -> None:
 
 
 class CodexCLI:
-    """CLAIF Codex CLI with Fire interface."""
+    """Claif Codex CLI with Fire interface."""
 
     def __init__(self, config_file: str | None = None, verbose: bool = False):
         """Initialize CLI with optional config file."""

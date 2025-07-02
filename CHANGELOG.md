@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-07-02
+
+### Added
+- **Real OpenAI Codex Integration**: Replaced mock implementation with real `@openai/codex` npm package
+- **Auto-Install Exception Handling**: Added automatic CLI detection and installation when codex tools are missing
+- Added `_is_cli_missing_error()` function to detect missing CLI tool errors
+- Added automatic retry logic after successful installation
+- Added post-install configuration prompts with terminal opening utilities
+
+### Changed
+- **Production CLI Implementation**: Now uses official OpenAI Codex CLI instead of mock/reference implementation
+- **Rich Dependencies Removed**: Completely removed all rich library dependencies
+- Replaced rich.console with simple print functions and loguru logging
+- Simplified CLI output using `_print`, `_print_error`, `_print_success`, `_print_warning` helper functions
+- Updated installation process to use real `@openai/codex` package
+- Enhanced bundling system integration for real CLI tool
+
+### Fixed
+- Fixed import issues with claif.common modules
+- Resolved CLI missing error detection across different platforms
+- Improved error handling during auto-install process
+- Fixed line length issues in install.py
+
+### Removed
+- Removed all rich imports (rich.console, rich.progress, rich.table, rich.live, rich.syntax)
+- Removed mock CLI implementation and reference scripts
+- Removed complex UI formatting in favor of simple, clean output
+
+## [1.0.6] - 2025-07-02
+
+### Changed
+- Enhanced auto-install functionality with better error detection
+- Improved integration with claif core install system
+- Preparation for real Codex CLI integration
+
 ## [1.0.5] - 2025-07-01
 
 ### Changed

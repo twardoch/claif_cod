@@ -221,7 +221,7 @@ I'll fix the lint error by removing the unused `Optional` import and the unneces
 ---
 
 ```diff
-  """CLAIF Codex wrapper."""
+  """Claif Codex wrapper."""
   
 - from typing import Optional
   from collections.abc import AsyncIterator
@@ -340,7 +340,7 @@ Tool call timed out after 10s (codebase search)
 
 <think><details><summary>Thought Process</summary>**Re-initiating Code Retrieval**
 
-I'm hitting a roadblock on the codebase search. It timed out, so I'm pivoting. I'll now attempt to read `claif.common ` from a related project within theClaif ecosystem, such as `claif_cla`. I don't have direct filesystem access, so I'll need to leverage inter-project communication methods to achieve this.
+I'm hitting a roadblock on the codebase search. It timed out, so I'm pivoting. I'll now attempt to read `claif.common ` from a related project within the Claif ecosystem, such as `claif_cla`. I don't have direct filesystem access, so I'll need to leverage inter-project communication methods to achieve this.
 
 
 **Refining Configuration Imports**

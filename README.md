@@ -2,17 +2,17 @@
 
 ## Quickstart
 
-CLAIF_COD is an async Python wrapper that integrates CLI-based AI code generation tools into theClaif framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks. Version 1.0.5 improves subprocess reliability by switching to native asyncio.
+Claif_COD is an async Python wrapper that integrates CLI-based AI code generation tools into the Claif framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks. Version 1.0.5 improves subprocess reliability by switching to native asyncio.
 
 ```bash
 pip install claif_cod && claif-cod query "Write a Python function to calculate fibonacci numbers"
 ```
 
-**CLAIF_COD** is a Python package that provides integration with OpenAI's Codex CLI as part of theClaif (Command-Line Artificial Intelligence Framework) ecosystem. It enables AI-powered code generation, refactoring, and manipulation through both command-line and programmatic interfaces.
+**Claif_COD** is a Python package that provides integration with OpenAI's Codex CLI as part of the Claif (Command-Line Artificial Intelligence Framework) ecosystem. It enables AI-powered code generation, refactoring, and manipulation through both command-line and programmatic interfaces.
 
 ## What`claif_cod` Does
 
-CLAIF_COD acts as a specialized provider that creates an async subprocess wrapper around the Codex CLI binary. The package:
+Claif_COD acts as a specialized provider that creates an async subprocess wrapper around the Codex CLI binary. The package:
 
 - **Manages subprocess communication** with the Codex CLI binary through async streaming
 - **Converts betweenClaif and Codex message formats** for unified API compatibility
@@ -22,7 +22,7 @@ CLAIF_COD acts as a specialized provider that creates an async subprocess wrappe
 - **Offers both CLI and Python API** interfaces with rich terminal output
 - **Logs operations with loguru** for debugging and monitoring
 
-The transport layer spawns the Codex CLI as a subprocess, streams JSON-formatted messages, and normalizes them into theClaif message format for consistent cross-provider usage.
+The transport layer spawns the Codex CLI as a subprocess, streams JSON-formatted messages, and normalizes them into the Claif message format for consistent cross-provider usage.
 
 ## Installation
 
@@ -66,7 +66,7 @@ uv pip install -e ".[dev,test]"
 
 ## Command Line Usage
 
-CLAIF_COD provides a Fire-based CLI with rich terminal output:
+Claif_COD provides a Fire-based CLI with rich terminal output:
 
 ### Basic Commands
 
@@ -264,7 +264,7 @@ async def safe_query():
 - Comprehensive documentation
 
 ### 4. **Integration**
-- Works seamlessly with theClaif framework
+- Works seamlessly with the Claif framework
 - Plugin architecture for easy extension
 - Configuration inheritance fromClaif
 - Compatible with existing codebases
@@ -492,11 +492,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - [GitHub Repository](https://github.com/twardoch/claif_cod)
 - [PyPI Package](https://pypi.org/project/claif_cod/)
-- [CLAIF Framework](https://github.com/twardoch/claif)
+- [Claif Framework](https://github.com/twardoch/claif)
 - [Documentation](https://claif-cod.readthedocs.io/)
 
 ## Related Projects
 
-- [CLAIF](https://github.com/twardoch/claif) - The main framework
-- [CLAIF_CLA](https://github.com/twardoch/claif_cla) - Claude provider
-- [CLAIF_GEM](https://github.com/twardoch/claif_gem) - Gemini provider
+- [Claif](https://github.com/twardoch/claif) - The main framework
+- [Claif_CLA](https://github.com/twardoch/claif_cla) - Claude provider
+- [Claif_GEM](https://github.com/twardoch/claif_gem) - Gemini provider
