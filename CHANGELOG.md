@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2025-01-02
+
+### Added
+- **Smart Retry Logic**: Implemented comprehensive tenacity-based retry mechanism
+  - Added `retry_count`, `retry_delay`, and `no_retry` fields to `CodexOptions`
+  - Implemented async retry logic in `send_query` method
+  - Added exponential backoff with configurable parameters
+  - Comprehensive error detection for quota/rate limit errors
+  - Added --no_retry CLI flag support in query command
+
+### Changed
+- Completely rewrote `send_query` method to support async retry logic
+- Enhanced error detection to include: "quota", "exhausted", "rate limit", "429", "503", "502"
+- Improved error messages to indicate retry count on failure
+- Made execute method work with retry wrapper
+
+### Fixed
+- Fixed issue where transient errors would fail immediately
+- Ensured non-retryable errors fail fast without unnecessary retries
+
 ## [1.0.7] - 2025-07-02
 
 ### Added

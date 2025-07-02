@@ -4,12 +4,14 @@
 
 `claif_cod` is the Codex/OpenAI provider for Claif, integrating with OpenAI's Codex CLI tool. The goal for v1.x is to create a stable, reliable MVP with comprehensive testing and cross-platform compatibility.
 
-## Current Status (v1.0.7)
+## Current Status (v1.0.8-dev)
 
 **Core Functionality**: Working Codex CLI integration ✅
 **Auto-Install**: Automatic CLI installation when missing ✅
 **Subprocess Management**: Async with anyio ✅
 **CLI Interface**: Fire-based with clean output ✅
+**Retry Logic**: Tenacity-based retry with exponential backoff ✅
+**Error Detection**: Smart detection of quota/rate limit errors ✅
 
 ## MVP v1.x Improvement Plan
 
