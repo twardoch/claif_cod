@@ -123,45 +123,45 @@ claif_cod/
 #### Key Improvements Needed
 
 #### transport.py
-- Better process lifecycle management
-- Improved error context
-- Resource cleanup
-- Performance monitoring
+- [ ] Better process lifecycle management
+- [ ] Improved error context
+- [ ] Resource cleanup
+- [ ] Performance monitoring
 
 #### client.py
-- Message validation
-- Error wrapping
-- Retry logic
-- Connection pooling
+- [ ] Message validation
+- [ ] Error wrapping
+- [ ] Retry logic
+- [ ] Connection pooling
 
 #### cli.py
-- Standardized help text
-- Progress indicators
-- Better error display
-- Command validation
+- [ ] Standardized help text
+- [ ] Progress indicators
+- [ ] Better error display
+- [ ] Command validation
 
 ## Quality Standards
 
 ### Code Quality
-- 100% type hint coverage
-- Comprehensive docstrings
-- Maximum cyclomatic complexity: 10
-- Clear error messages
-- Consistent naming
+- [ ] 100% type hint coverage
+- [ ] Comprehensive docstrings
+- [ ] Maximum cyclomatic complexity: 10
+- [ ] Clear error messages
+- [ ] Consistent naming
 
 ### Testing Standards
-- Unit tests for all functions
-- Integration tests for workflows
-- Mock all subprocess calls
-- Test all error paths
-- Cross-platform verification
+- [ ] Unit tests for all functions
+- [ ] Integration tests for workflows
+- [ ] Mock all subprocess calls
+- [ ] Test all error paths
+- [ ] Cross-platform verification
 
 ### Documentation Standards
-- Complete README
-- API documentation
-- Architecture diagrams
-- Troubleshooting guide
-- Performance tips
+- [ ] Complete README
+- [ ] API documentation
+- [ ] Architecture diagrams
+- [ ] Troubleshooting guide
+- [ ] Performance tips
 
 ## Success Criteria for v1.x
 
@@ -232,5 +232,3 @@ claif_cod/
 -   Memory usage profiling
 -   Concurrent operation limits
 -   Response streaming efficiency
-
-Keep the codebase lean and focused on being a reliable subprocess-based provider for Claif.

@@ -1,160 +1,160 @@
-# claif_cod TODO List - v1.x Stable MVP
+# claif_cod TODO List - v1.0 MVP Stability Focus
 
-## Immediate Priority (v1.0.8)
+## CRITICAL (Blocking v1.0 Release)
 
-### Unit Testing
-- [ ] Add pytest test suite for all modules
-- [ ] Test transport.py subprocess handling
-- [ ] Test client.py message conversion
-- [ ] Test CLI command construction
-- [ ] Test JSON parsing logic
-- [ ] Test install.py functionality
-- [ ] Mock subprocess operations
-- [ ] Test timeout and cancellation
-- [ ] Achieve 80%+ code coverage
+### Test Suite Implementation
+- [ ] **Add comprehensive pytest test suite** - Cover all modules with mocked subprocess operations
+- [ ] **Mock all subprocess calls** - Test transport.py with fake CLI processes  
+- [ ] **Test JSON parsing robustness** - Handle malformed, partial, and edge case responses
+- [ ] **Achieve 80%+ test coverage** - Verify accuracy with clean test environments
+- [ ] **Test timeout and cancellation** - Ensure proper cleanup under all conditions
 
-### Subprocess Cleanup
-- [ ] Handle process termination cleanly
-- [ ] Fix resource leaks
-- [ ] Proper async cleanup
+### Critical Bug Fixes
+- [ ] **Fix subprocess lifecycle management** - Proper process termination and cleanup
+- [ ] **Eliminate resource leaks** - No hanging processes or memory leaks
+- [ ] **Improve error handling** - Clear, actionable messages for all failure modes
+- [ ] **Fix async cleanup issues** - Proper cancellation and resource management
 
-### Error Messages
-- [ ] Add context to subprocess errors
-- [ ] Clear API key error messages
-- [ ] Better process spawn failures
+### Essential Functionality  
+- [ ] **CLI discovery works reliably** - Find codex-cli in various installation locations
+- [ ] **Basic operations function** - Query, message parsing, error handling work
+- [ ] **Auto-install verification** - Codex CLI installs correctly when missing
 
-## Short-term Priority (v1.1.0)
+## HIGH PRIORITY (Required for Stable Release)
+
+### Cross-Platform Reliability
+- [ ] **Test on Windows, macOS, Linux** - Verify all functionality works across platforms
+- [ ] **Handle path spaces and special characters** - Robust path handling
+- [ ] **Support various install locations** - npm global, local, custom paths
+- [ ] **Executable permissions** - Proper handling on Unix systems
+
+### Subprocess Management
+- [ ] **Process group handling** - Prevent zombie processes
+- [ ] **Stream buffering optimization** - Handle large outputs efficiently
+- [ ] **Timeout management** - Graceful timeouts with proper cleanup
+- [ ] **Error capture** - Collect stderr for meaningful error messages
 
 ### Integration Testing
-- [ ] Test with real Codex CLI
-- [ ] Test auto-install flow
-- [ ] Test different response formats
-- [ ] Test error conditions
-- [ ] Cross-platform compatibility
+- [ ] **Mock CLI testing** - Comprehensive fake codex-cli for testing
+- [ ] **End-to-end workflows** - Complete user scenarios 
+- [ ] **Error recovery testing** - Network failures, timeouts, crashes
+- [ ] **Installation flow testing** - Auto-install in clean environments
 
-### Cross-Platform Testing
-- [ ] Test all discovery paths
-- [ ] Handle symlinks correctly
-- [ ] Support custom install paths
-- [ ] Verify executable permissions
-- [ ] Handle path spaces/quotes
+## MEDIUM PRIORITY (Nice to Have for v1.0)
 
-### Documentation
-- [ ] Installation guide
-- [ ] API key setup guide
-- [ ] Model selection guide
-- [ ] Troubleshooting section
-- [ ] Common errors FAQ
+### Essential Documentation
+- [ ] **Installation guide** - Clear setup instructions with troubleshooting
+- [ ] **Basic usage examples** - Common operations and workflows
+- [ ] **API configuration guide** - Setting up API keys and models
+- [ ] **Error troubleshooting** - Solutions for common problems
 
-## Medium-term Priority (v1.2.0)
+### Code Quality
+- [ ] **Complete docstrings** - All public functions documented
+- [ ] **Type hint coverage** - 100% type annotations
+- [ ] **Performance profiling** - Basic optimization of critical paths
 
-### Advanced CLI Features
-- [ ] Extended command options
-- [ ] Response filtering
-- [ ] Output formatting
+## SUCCESS CRITERIA FOR v1.0
 
-### Response Caching
-- [ ] Implement caching layer
-- [ ] Cache invalidation
-- [ ] TTL management
+### Reliability (Must Have)
+- ✅ **99%+ success rate** for subprocess operations
+- ✅ **No resource leaks** in normal operation
+- ✅ **Graceful error handling** with clear messages
+- ✅ **Stable async operations** - Proper cleanup and cancellation
 
-### Extended Error Recovery
-- [x] Retry logic ✅ COMPLETED - Implemented tenacity-based retry with exponential backoff
-- [ ] Fallback strategies
-- [ ] Better timeout handling
+### Testing (Must Have)
+- ✅ **80%+ test coverage** with verified accuracy
+- ✅ **All critical paths tested** including error conditions
+- ✅ **Mocked subprocess dependencies** for reliable testing
+- ✅ **Cross-platform compatibility** verified
 
-## Testing & Reliability
+### User Experience (Should Have)
+- ✅ **Auto-install works reliably** in clean environments
+- ✅ **Clear error messages** for setup and usage problems
+- ✅ **JSON parsing handles edge cases** without crashes
+- ✅ **Fast startup time** (<3 seconds including CLI detection)
 
-### Subprocess Reliability
-- [ ] Test with slow/hanging processes
-- [ ] Verify memory cleanup
-- [ ] Test concurrent operations
-- [ ] Handle zombie processes
+## NON-GOALS FOR v1.0
 
-### Error Handling
-- [ ] Capture stderr properly
-- [ ] Parse CLI error formats
-- [ ] Handle non-zero exit codes
-- [ ] Timeout error clarity
-- [ ] Installation failure guidance
-- [ ] Network timeout explanations
-- [ ] Model availability errors
+Explicitly excluding to maintain focus:
 
-### Installation Robustness
-- [ ] Verify npm/bun availability
-- [ ] Handle partial installs
+- ❌ **Advanced CLI features** (response filtering, custom formatting)
+- ❌ **Response caching** mechanisms
+- ❌ **Performance optimization** beyond basic functionality
+- ❌ **Custom protocol extensions**
+- ❌ **Database persistence**
+- ❌ **Multi-user support**
+- ❌ **Complex configuration** options
+- ❌ **Response transformation** features
+
+## RISK MITIGATION
+
+### High Risk Items
+1. **Subprocess management bugs** → Could cause hangs or crashes
+   - **Mitigation**: Comprehensive testing with timeouts and mocking
+2. **JSON parsing failures** → Could crash on malformed responses
+   - **Mitigation**: Robust parsing with error recovery
+3. **Cross-platform issues** → Could limit adoption
+   - **Mitigation**: Test matrix with GitHub Actions
+
+### Medium Risk Items
+1. **CLI discovery failures** → Could prevent basic functionality
+   - **Mitigation**: Multiple search paths, clear error messages
+2. **Installation problems** → Could block user onboarding
+   - **Mitigation**: Detailed troubleshooting guides
+
+## MODULE FOCUS
+
+### transport.py (CRITICAL)
+- [ ] Fix process lifecycle management and cleanup
+- [ ] Improve error context and handling
+- [ ] Add timeout and cancellation support
+- [ ] Optimize stream handling for large responses
+
+### client.py (HIGH)
+- [ ] Add message validation and error wrapping
+- [ ] Implement connection pooling if beneficial
+- [ ] Improve error propagation
+- [ ] Add retry logic for transient failures
+
+### cli.py (MEDIUM)
+- [ ] Standardize help text and error display
+- [ ] Add progress indicators for long operations
+- [ ] Better argument validation
+- [ ] Consistent output formatting
+
+### install.py (MEDIUM)
+- [ ] Robust npm/bun detection
+- [ ] Handle partial installations
 - [ ] Support proxy environments
-- [ ] Offline install options
-- [ ] Version compatibility checks
+- [ ] Clear installation error messages
 
-## Transport Layer Improvements
+## DEFINITION OF DONE
 
-### Async Operations
-- [ ] Proper cleanup on cancellation
-- [ ] Handle process groups
-- [ ] Stream buffering optimization
-- [ ] Backpressure handling
-- [ ] Resource leak prevention
+For each task to be considered complete:
 
-### Performance
-- [ ] Profile subprocess overhead
-- [ ] Optimize JSON parsing
-- [ ] Reduce memory usage
-- [ ] Connection pooling
-- [ ] Response streaming
+- [ ] **Implementation** meets requirements and handles edge cases
+- [ ] **Tests** cover the functionality with comprehensive mocks
+- [ ] **Error handling** includes clear, actionable messages
+- [ ] **Documentation** updated for user-facing changes
+- [ ] **Cross-platform** compatibility verified
+- [ ] **Performance** impact measured and acceptable
 
-## Code Organization
+## POST-v1.0 ROADMAP
 
-### Key Module Improvements
+### v1.1 (Enhanced Features)
+- Advanced CLI features (response filtering, custom formatting)
+- Response caching for performance
+- Extended error recovery strategies
+- Connection pooling optimization
 
-#### transport.py
-- [ ] Better process lifecycle management
-- [ ] Improved error context
-- [ ] Resource cleanup
-- [ ] Performance monitoring
+### v1.2 (Performance & Polish)
+- Startup time optimization
+- Memory usage reduction
+- Advanced timeout handling
+- Improved JSON parsing performance
 
-#### client.py
-- [ ] Message validation
-- [ ] Error wrapping
-- [ ] Retry logic
-- [ ] Connection pooling
-
-#### cli.py
-- [ ] Standardized help text
-- [ ] Progress indicators
-- [ ] Better error display
-- [ ] Command validation
-
-## Quality Standards
-
-### Testing Focus
-- [ ] Mock all subprocess.Popen calls
-- [ ] Test JSON parsing edge cases
-- [ ] Verify timeout behavior
-- [ ] Test CLI discovery logic
-- [ ] Validate error handling
-
-### Performance Testing
-- [ ] Subprocess spawn overhead
-- [ ] JSON parsing speed
-- [ ] Memory usage profiling
-- [ ] Concurrent operation limits
-- [ ] Response streaming efficiency
-
-## Success Metrics
-
-- [ ] **Reliability**: 99.9% success rate for subprocess operations
-- [ ] **Performance**: < 100ms overhead per operation
-- [ ] **Testing**: 80%+ test coverage with mocks
-- [ ] **Error Handling**: Clear, actionable error messages
-- [ ] **Cross-Platform**: Verified on Windows, macOS, Linux
-- [ ] **Documentation**: Complete user and API docs
-- [ ] **Installation**: Auto-install works on clean systems
-
-## Non-Goals for v1.x
-
-- Complex UI features
+### v2.0 (Major Features)
+- Native API integration (bypass CLI)
 - Custom protocol extensions
-- Database persistence
-- Multi-user support
-- Response transformation
+- Advanced caching and persistence
+- Multi-model routing
