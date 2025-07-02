@@ -165,60 +165,72 @@ claif_cod/
 
 ## Success Criteria for v1.x
 
-1. **Reliability**: 99.9% success rate for subprocess operations
-2. **Performance**: < 100ms overhead per operation
-3. **Testing**: 80%+ test coverage with mocks
-4. **Error Handling**: Clear, actionable error messages
-5. **Cross-Platform**: Verified on Windows, macOS, Linux
-6. **Documentation**: Complete user and API docs
-7. **Installation**: Auto-install works on clean systems
+1.  **Reliability**: 99.9% success rate for subprocess operations
+2.  **Performance**: < 100ms overhead per operation
+3.  **Testing**: 80%+ test coverage with mocks
+4.  **Error Handling**: Clear, actionable error messages
+5.  **Cross-Platform**: Verified on Windows, macOS, Linux
+6.  **Documentation**: Complete user and API docs
+7.  **Installation**: Auto-install works on clean systems
 
 ## Development Priorities
 
 ### Immediate (v1.0.8)
-1. Add comprehensive test suite
-2. Fix subprocess cleanup issues
-3. Improve error messages
+1.  Add pytest test suite for all modules
+2.  Test transport.py subprocess handling
+3.  Test client.py message conversion
+4.  Test CLI command construction
+5.  Test JSON parsing logic
+6.  Test install.py functionality
+7.  Mock subprocess operations
+8.  Test timeout and cancellation
+9.  Achieve 80%+ code coverage
+10. Handle process termination cleanly
+11. Fix resource leaks
+12. Proper async cleanup
+13. Add context to subprocess errors
+14. Clear API key error messages
+15. Better process spawn failures
 
 ### Short-term (v1.1.0)
-1. Cross-platform testing
-2. Complete documentation
-3. Performance optimization
+1.  Cross-platform testing
+2.  Complete documentation
+3.  Performance optimization
 
 ### Medium-term (v1.2.0)
-1. Advanced CLI features
-2. Response caching
-3. Extended error recovery
+1.  Advanced CLI features
+2.  Response caching
+3.  Extended error recovery
 
 ## Non-Goals for v1.x
 
-- Complex UI features
-- Custom protocol extensions
-- Database persistence
-- Multi-user support
-- Response transformation
+-   Complex UI features
+-   Custom protocol extensions
+-   Database persistence
+-   Multi-user support
+-   Response transformation
 
 ## Testing Strategy
 
 ### Unit Test Focus
-- Mock all subprocess.Popen calls
-- Test JSON parsing edge cases
-- Verify timeout behavior
-- Test CLI discovery logic
-- Validate error handling
+-   Mock all subprocess.Popen calls
+-   Test JSON parsing edge cases
+-   Verify timeout behavior
+-   Test CLI discovery logic
+-   Validate error handling
 
 ### Integration Test Focus
-- Real CLI execution (when available)
-- Cross-platform path handling
-- Installation verification
-- Network failure scenarios
-- API key validation
+-   Real CLI execution (when available)
+-   Cross-platform path handling
+-   Installation verification
+-   Network failure scenarios
+-   API key validation
 
 ### Performance Testing
-- Subprocess spawn overhead
-- JSON parsing speed
-- Memory usage profiling
-- Concurrent operation limits
-- Response streaming efficiency
+-   Subprocess spawn overhead
+-   JSON parsing speed
+-   Memory usage profiling
+-   Concurrent operation limits
+-   Response streaming efficiency
 
 Keep the codebase lean and focused on being a reliable subprocess-based provider for Claif.

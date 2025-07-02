@@ -1,4 +1,4 @@
-#`claif_cod` - Development Guide for AI Agents
+# `claif_cod` - Development Guide for AI Agents
 
 This document provides guidance for AI agents working on the`claif_cod` codebase. It explains the project structure, development principles, and implementation details.
 
@@ -315,3 +315,5 @@ class MockCodexCLI:
 For questions about this codebase:
 - GitHub Issues: https://github.com/twardoch/claif_cod/issues
 -Claif Framework: https://github.com/twardoch/claif
+
+Use `uv pip` instead of `pip`. Use `uvx hatch test` instead of `python -m pytest`. 
