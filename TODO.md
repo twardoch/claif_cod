@@ -1,126 +1,160 @@
-# claif_cod TODO List - Quality Focus v1.1
+# claif_cod TODO List - v1.x Stable MVP
 
-## ✅ COMPLETED - MVP v1.0
+## Immediate Priority (v1.0.8)
 
-### Real Codex CLI Implementation - ✅ COMPLETED
+### Unit Testing
+- [ ] Add pytest test suite for all modules
+- [ ] Test transport.py subprocess handling
+- [ ] Test client.py message conversion
+- [ ] Test CLI command construction
+- [ ] Test JSON parsing logic
+- [ ] Test install.py functionality
+- [ ] Mock subprocess operations
+- [ ] Test timeout and cancellation
+- [ ] Achieve 80%+ code coverage
 
+### Subprocess Cleanup
+- [ ] Handle process termination cleanly
+- [ ] Fix resource leaks
+- [ ] Proper async cleanup
 
+### Error Messages
+- [ ] Add context to subprocess errors
+- [ ] Clear API key error messages
+- [ ] Better process spawn failures
 
+## Short-term Priority (v1.1.0)
 
-### Auto-Install Support (Issue #201) - ✅ COMPLETED
+### Integration Testing
+- [ ] Test with real Codex CLI
+- [ ] Test auto-install flow
+- [ ] Test different response formats
+- [ ] Test error conditions
+- [ ] Cross-platform compatibility
 
+### Cross-Platform Testing
+- [ ] Test all discovery paths
+- [ ] Handle symlinks correctly
+- [ ] Support custom install paths
+- [ ] Verify executable permissions
+- [ ] Handle path spaces/quotes
 
+### Documentation
+- [ ] Installation guide
+- [ ] API key setup guide
+- [ ] Model selection guide
+- [ ] Troubleshooting section
+- [ ] Common errors FAQ
 
+## Medium-term Priority (v1.2.0)
 
+### Advanced CLI Features
+- [ ] Extended command options
+- [ ] Response filtering
+- [ ] Output formatting
 
+### Response Caching
+- [ ] Implement caching layer
+- [ ] Cache invalidation
+- [ ] TTL management
 
-### Rich Dependencies - ✅ COMPLETED
+### Extended Error Recovery
+- [ ] Retry logic
+- [ ] Fallback strategies
+- [ ] Better timeout handling
 
+## Testing & Reliability
 
+### Subprocess Reliability
+- [ ] Test with slow/hanging processes
+- [ ] Verify memory cleanup
+- [ ] Test concurrent operations
+- [ ] Handle zombie processes
 
+### Error Handling
+- [ ] Capture stderr properly
+- [ ] Parse CLI error formats
+- [ ] Handle non-zero exit codes
+- [ ] Timeout error clarity
+- [ ] Installation failure guidance
+- [ ] Network timeout explanations
+- [ ] Model availability errors
 
+### Installation Robustness
+- [ ] Verify npm/bun availability
+- [ ] Handle partial installs
+- [ ] Support proxy environments
+- [ ] Offline install options
+- [ ] Version compatibility checks
 
-### Core Architecture - ✅ COMPLETED
+## Transport Layer Improvements
 
+### Async Operations
+- [ ] Proper cleanup on cancellation
+- [ ] Handle process groups
+- [ ] Stream buffering optimization
+- [ ] Backpressure handling
+- [ ] Resource leak prevention
 
+### Performance
+- [ ] Profile subprocess overhead
+- [ ] Optimize JSON parsing
+- [ ] Reduce memory usage
+- [ ] Connection pooling
+- [ ] Response streaming
 
+## Code Organization
 
+### Key Module Improvements
 
+#### transport.py
+- [ ] Better process lifecycle management
+- [ ] Improved error context
+- [ ] Resource cleanup
+- [ ] Performance monitoring
 
-## High Priority - v1.1 Quality & Testing
+#### client.py
+- [ ] Message validation
+- [ ] Error wrapping
+- [ ] Retry logic
+- [ ] Connection pooling
 
-### Unit Testing (80%+ Coverage Target)
-- [ ] **Transport Tests**: Test `_find_cli_path()` with various environments
-- [ ] **Command Tests**: Test `_build_command()` construction variations
-- [ ] **Output Tests**: Test `_parse_output_line()` with edge cases
-- [ ] **Client Tests**: Test message conversion and provider interface
-- [ ] **Install Tests**: Test auto-install logic with mocked npm/bun operations
+#### cli.py
+- [ ] Standardized help text
+- [ ] Progress indicators
+- [ ] Better error display
+- [ ] Command validation
 
-### Error Handling & User Experience
-- [ ] **API Key Validation**: Improve missing OPENAI_API_KEY error handling
-- [ ] **Async Cleanup**: Improve async cleanup in transport layer
-- [ ] **Timeout Handling**: Add proper timeout management for long-running queries
-- [ ] **Subprocess Robustness**: Better subprocess error handling and cleanup
-- [ ] **Specific Exceptions**: Add more specific exception types for different failure modes
+## Quality Standards
 
-### Documentation & Guides
-- [ ] **README Update**: Document real OpenAI Codex integration instead of reference implementation
-- [ ] **API Key Guide**: Document OPENAI_API_KEY environment variable setup
-- [ ] **Usage Examples**: Add real Codex CLI usage examples
-- [ ] **Troubleshooting**: Remove references to "reference implementation"
-- [ ] **Integration Guide**: How to integrate with main claif package
+### Testing Focus
+- [ ] Mock all subprocess.Popen calls
+- [ ] Test JSON parsing edge cases
+- [ ] Verify timeout behavior
+- [ ] Test CLI discovery logic
+- [ ] Validate error handling
 
-## Medium Priority - Release & Polish
+### Performance Testing
+- [ ] Subprocess spawn overhead
+- [ ] JSON parsing speed
+- [ ] Memory usage profiling
+- [ ] Concurrent operation limits
+- [ ] Response streaming efficiency
 
-### CLI Standardization
-- [ ] **Version Flag**: Add `--version` flag for CLI
-- [ ] **Help Consistency**: Standardize `--help` output format
-- [ ] **Exit Codes**: Implement consistent exit code patterns
-- [ ] **Verbosity Levels**: Standardize logging levels and verbose output
+## Success Metrics
 
-### Build & Release Automation
-- [ ] **Package Verification**: Verify package installs with `pip install -e .`
-- [ ] **GitHub Actions**: Set up CI/CD pipeline with automated testing
-- [ ] **PyPI Publishing**: Set up automated PyPI release workflow
-- [ ] **Version Coordination**: Sync version bumps with main claif package
+- [ ] **Reliability**: 99.9% success rate for subprocess operations
+- [ ] **Performance**: < 100ms overhead per operation
+- [ ] **Testing**: 80%+ test coverage with mocks
+- [ ] **Error Handling**: Clear, actionable error messages
+- [ ] **Cross-Platform**: Verified on Windows, macOS, Linux
+- [ ] **Documentation**: Complete user and API docs
+- [ ] **Installation**: Auto-install works on clean systems
 
-### Performance & Optimization
-- [ ] **Startup Time**: Optimize import time and CLI responsiveness
-- [ ] **Memory Usage**: Profile and optimize memory consumption
-- [ ] **Subprocess Efficiency**: Optimize codex CLI communication
-- [ ] **Config Caching**: Cache configuration loading where beneficial
+## Non-Goals for v1.x
 
-## Low Priority - Future Enhancements
-
-### Advanced Features (v1.2+)
-- [ ] Response caching with configurable TTL
-- [ ] Enhanced session management capabilities
-- [ ] Advanced retry logic with exponential backoff
-- [ ] Connection pooling for multiple queries
-- [ ] Extended Codex-specific features
-
-### Development Experience
-- [ ] Enhanced debugging and profiling tools
-- [ ] Performance benchmarking suite
-- [ ] Advanced configuration options
-- [ ] Plugin system for custom extensions
-
-## Definition of Done for v1.1
-
-### Quality Gates
-- [ ] 80%+ unit test coverage on core modules
-- [ ] All linting (ruff) and type checking (mypy) passes
-- [ ] Cross-platform testing completed and documented
-- [ ] All CLI commands have `--help` and `--version`
-- [ ] Package builds successfully with `python -m build`
-- [ ] Auto-install functionality verified on clean systems
-
-### Success Criteria
-1. **Reliability**: No regressions from v1.0 functionality ✅
-2. **Testing**: Comprehensive test coverage gives confidence in changes
-3. **Documentation**: Users can easily understand and troubleshoot issues
-4. **Quality**: Professional polish suitable for production use
-5. **Automation**: Releases can be made confidently with automated testing
-
-## Current Focus
-
-**Immediate Next Steps:**
-1. Set up comprehensive unit test framework for real Codex CLI
-2. Create GitHub Actions CI/CD workflow
-3. Update documentation to reflect real OpenAI integration
-4. Add missing error handling and validation
-5. Verify cross-platform testing
-
-**Success Metrics Maintained:**
-- Keep simple, maintainable codebase
-- Ensure zero-setup user experience
-- Preserve cross-platform compatibility
-- Maintain real OpenAI Codex functionality
-
-**Implementation Principles:**
-- Keep it simple and maintainable ✅
-- Use real OpenAI Codex CLI for production readiness ✅
-- Don't add features without user demand
-- Ship what works, iterate based on feedback
-
-The MVP is complete with real OpenAI Codex integration working. Now we make it bulletproof with testing, documentation, and professional release automation.
+- Complex UI features
+- Custom protocol extensions
+- Database persistence
+- Multi-user support
+- Response transformation

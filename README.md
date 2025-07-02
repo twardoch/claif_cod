@@ -1,61 +1,65 @@
-#`claif_cod` - Codex Provider for Claif
+# claif_cod - Codex Provider for Claif
 
 ## Quickstart
 
-Claif_COD is an async Python wrapper that integrates CLI-based AI code generation tools into the Claif framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks. Version 1.0.5 improves subprocess reliability by switching to native asyncio.
-
 ```bash
-pip install claif_cod && claif-cod query "Write a Python function to calculate fibonacci numbers"
+# Install and start using Codex
+pip install claif_cod
+claif-cod query "Write a Python fibonacci function"
+
+# Or use it with the Claif framework
+pip install claif[all]
+claif query "Refactor this code for better performance" --provider codex
+
+# Stream responses with live display
+claif-cod stream "Create a REST API with FastAPI"
+
+# Choose action mode for code safety
+claif-cod query "Fix all bugs" --action-mode review  # Preview changes first
 ```
 
-**Claif_COD** is a Python package that provides integration with OpenAI's Codex CLI as part of the Claif (Command-Line Artificial Intelligence Framework) ecosystem. It enables AI-powered code generation, refactoring, and manipulation through both command-line and programmatic interfaces.
+## What is claif_cod?
 
-## What`claif_cod` Does
+`claif_cod` is an async Python wrapper that integrates OpenAI's Codex CLI into the Claif framework. It provides a subprocess-based transport layer that communicates with the Codex CLI through JSON streaming, enabling AI-powered code generation, refactoring, and manipulation with multiple safety modes.
 
-Claif_COD acts as a specialized provider that creates an async subprocess wrapper around the Codex CLI binary. The package:
-
-- **Manages subprocess communication** with the Codex CLI binary through async streaming
-- **Converts between Claif and Codex message formats** for unified API compatibility
-- **Provides multiple action modes** (review, interactive, full-auto) for code safety
-- **Handles platform-specific CLI discovery** across Windows, macOS, and Linux
-- **Implements timeout protection** and graceful error handling for long operations
-- **Offers both CLI and Python API** interfaces with rich terminal output
-- **Logs operations with loguru** for debugging and monitoring
-
-The transport layer spawns the Codex CLI as a subprocess, streams JSON-formatted messages, and normalizes them into the Claif message format for consistent cross-provider usage.
+**Key Features:**
+- **Async subprocess management** - Efficient streaming with native asyncio
+- **Multiple action modes** - Review, interactive, or full-auto code changes
+- **Platform-aware CLI discovery** - Works on Windows, macOS, and Linux
+- **Timeout protection** - Graceful handling of long operations
+- **Rich CLI interface** - Beautiful output with Fire and Rich
+- **Type-safe API** - Full type hints and IDE support
+- **Clean JSON streaming** - Reliable message parsing and error handling
 
 ## Installation
 
 ### Prerequisites
 
-You need to have the Codex CLI binary installed. Set the path via environment variable:
+You need the Codex CLI binary installed. Set the path via environment variable:
+
 ```bash
 export CODEX_CLI_PATH=/path/to/codex-cli
 ```
 
-### From PyPI
+Or install it via npm:
+
 ```bash
+npm install -g @openai/codex
+```
+
+### Basic Installation
+
+```bash
+# Core package only
 pip install claif_cod
-```
 
-### From Source
-```bash
-git clone https://github.com/twardoch/claif_cod.git
-cd claif_cod
-pip install -e .
-```
-
-### With Claif Framework
-```bash
-# Install Claif with Codex support
-pip install claif[cod]
-# or
+# With Claif framework
 pip install claif claif_cod
 ```
 
 ### Development Installation
+
 ```bash
-# Clone and install with development dependencies
 git clone https://github.com/twardoch/claif_cod.git
 cd claif_cod
 pip install -e ".[dev,test]"
@@ -64,35 +68,38 @@ pip install -e ".[dev,test]"
 uv pip install -e ".[dev,test]"
 ```
 
-## Command Line Usage
+## CLI Usage
 
-Claif_COD provides a Fire-based CLI with rich terminal output:
+`claif_cod` provides a Fire-based CLI with rich terminal output for all your code generation needs.
 
 ### Basic Commands
 
 ```bash
 # Simple code generation
-claif-cod query "Write a Python function to calculate fibonacci numbers"
+claif-cod query "Write a sorting algorithm in Python"
 
 # Use specific model
-claif-cod query "Refactor this code for better performance" --model o4
+claif-cod query "Optimize this database query" --model o4
 
-# Set custom parameters
-claif-cod query "Add comprehensive error handling" --temperature 0.2 --max-tokens 2000
+# Set parameters
+claif-cod query "Add error handling" --temperature 0.2 --max-tokens 2000
+
+# With system prompt
+claif-cod query "Convert to TypeScript" --system "You are a TypeScript expert"
 ```
 
 ### Action Modes
 
-Control how code changes are applied:
+Control how code changes are applied to ensure safety:
 
 ```bash
-# Review mode (default) - preview all changes before applying
+# Review mode (default) - Preview all changes before applying
 claif-cod query "Fix the bug in main.py" --action-mode review
 
-# Interactive mode - approve each change individually
+# Interactive mode - Approve each change individually
 claif-cod query "Update all docstrings" --action-mode interactive
 
-# Full-auto mode - apply all changes automatically
+# Full-auto mode - Apply all changes automatically (use with caution!)
 claif-cod query "Format all files" --action-mode full-auto --auto-approve
 ```
 
@@ -104,13 +111,16 @@ claif-cod query "Run tests and fix failures" --working-dir /path/to/project
 
 # Use current directory
 claif-cod query "Add type hints to all functions" --working-dir .
+
+# Work on specific files
+claif-cod query "Refactor user.py and auth.py" --working-dir ./src
 ```
 
 ### Streaming Responses
 
 ```bash
 # Stream responses in real-time
-claif-cod stream "Implement a REST API with FastAPI"
+claif-cod stream "Implement a websocket server"
 
 # Stream with specific model
 claif-cod stream "Create comprehensive unit tests" --model o4-preview
@@ -136,8 +146,8 @@ claif-cod modes
 claif-cod config show
 
 # Set configuration values
-claif-cod config set --codex_cli_path /usr/local/bin/codex-cli
-claif-cod config set --default_model o4-mini
+claif-cod config set --codex-cli-path /usr/local/bin/codex-cli
+claif-cod config set --default-model o4-mini
 claif-cod config set --timeout 300
 
 # Save configuration
@@ -172,8 +182,10 @@ async def main():
         model="o4",
         temperature=0.2,
         max_tokens=1500,
-        action_mode="review"
+        action_mode="review",
+        system_prompt="You are an expert Python developer"
     )
+    
     async for message in query("Optimize this function", options):
         print(message.content)
 
@@ -193,18 +205,24 @@ async def generate_code():
         max_tokens=2000,
         action_mode="interactive",
         working_dir=Path("./src"),
-        system_prompt="You are an expert Python developer",
+        system_prompt="You are an expert in clean code and design patterns",
         auto_approve_everything=False,
         timeout=300
     )
     
-    async for message in query("Create a web scraper", options):
-        if message.content_type == "code":
-            print(f"Generated code:\n{message.content}")
-        elif message.content_type == "error":
-            print(f"Error: {message.content}")
-        else:
-            print(message.content)
+    async for message in query("Refactor user authentication module", options):
+        if hasattr(message, 'content'):
+            print(f"Content: {message.content}")
+        
+        # Handle different content types
+        if hasattr(message.content, '__iter__'):
+            for block in message.content:
+                if block.type == "code":
+                    print(f"Generated code:\n{block.text}")
+                elif block.type == "error":
+                    print(f"Error: {block.text}")
+
+asyncio.run(generate_code())
 ```
 
 ### Working with Transport Layer
@@ -213,16 +231,24 @@ async def generate_code():
 from claif_cod.transport import CodexTransport
 from claif_cod.types import CodexOptions
 
-# Create custom transport
-transport = CodexTransport(
-    cli_path="/usr/local/bin/codex-cli",
-    timeout=600  # 10 minutes for complex operations
-)
+async def custom_transport():
+    # Create transport with custom settings
+    transport = CodexTransport(
+        cli_path="/usr/local/bin/codex-cli",
+        timeout=600  # 10 minutes for complex operations
+    )
+    
+    # Execute query
+    options = CodexOptions(
+        model="o4",
+        action_mode="review",
+        working_dir=Path("./project")
+    )
+    
+    async for message in transport.send_query("Refactor entire module", options):
+        print(f"{message.message_type}: {message.content}")
 
-# Execute query
-options = CodexOptions(model="o4", action_mode="review")
-async for message in transport.query("Refactor entire module", options):
-    print(f"{message.message_type}: {message.content}")
+asyncio.run(custom_transport())
 ```
 
 ### Error Handling
@@ -234,42 +260,42 @@ from claif_cod import query, CodexOptions
 async def safe_query():
     try:
         options = CodexOptions(timeout=120)
-        async for message in query("Complex refactoring", options):
+        async for message in query("Complex refactoring task", options):
             print(message.content)
+            
     except TimeoutError:
-        print("Operation timed out")
+        print("Operation timed out - try breaking into smaller tasks")
+        
     except ProviderError as e:
         print(f"Codex error: {e}")
+        
     except Exception as e:
         print(f"Unexpected error: {e}")
+
+asyncio.run(safe_query())
 ```
 
-## Why`claif_cod` is Useful
+### Using with Claif Framework
 
-### 1. **Unified Interface**
-- Consistent API across different AI providers
-- Easy switching between Codex, Claude, Gemini, and others
-- Standardized message format and error handling
+```python
+from claif import query as claif_query, Provider, ClaifOptions
 
-### 2. **Safety Features**
-- Default review mode prevents unwanted changes
-- Timeout protection for long-running operations
-- Clear error messages and logging
-- Working directory isolation
+async def use_with_claif():
+    # Query through Claif framework
+    options = ClaifOptions(
+        provider=Provider.CODEX,
+        model="o4-mini",
+        temperature=0.2,
+        system_prompt="Focus on performance and readability"
+    )
+    
+    async for message in claif_query("Optimize database queries", options):
+        print(message.content)
 
-### 3. **Developer Experience**
-- Rich CLI with colored output and progress indicators
-- Both sync and async APIs
-- Type hints and IDE support
-- Comprehensive documentation
+asyncio.run(use_with_claif())
+```
 
-### 4. **Integration**
-- Works seamlessly with the Claif framework
-- Plugin architecture for easy extension
-- Configuration inheritance from Claif
-- Compatible with existing codebases
-
-## How`claif_cod` Works
+## How It Works
 
 ### Architecture Overview
 
@@ -279,101 +305,187 @@ async def safe_query():
 ├─────────────────────┤
 │   Claif Core       │  ← Unified interface (Message types)
 ├─────────────────────┤
-│   `claif_cod`        │  ← This package (provider adapter)
+│   claif_cod        │  ← This package (provider adapter)
 ├─────────────────────┤
-│   CodexClient       │  ← Client orchestration layer
+│   CodexClient      │  ← Client orchestration layer
 ├─────────────────────┤
-│  CodexTransport     │  ← Async subprocess management
+│  CodexTransport    │  ← Async subprocess management
 ├─────────────────────┤
-│  Codex CLI Binary   │  ← External process (JSON I/O)
+│  Codex CLI Binary  │  ← External process (JSON I/O)
 └─────────────────────┘
 ```
 
-### Codebase Structure
+### Core Components
 
-The package is organized into five main modules:
+#### Main Module (`__init__.py`)
 
+Entry point providing the `query()` function:
+
+```python
+async def query(
+    prompt: str,
+    options: ClaifOptions | None = None
+) -> AsyncIterator[Message]:
+    """Query Codex with unified Claif interface."""
+    # Convert options
+    codex_options = _convert_options(options) if options else CodexOptions()
+    
+    # Use module-level client
+    async for message in _client.query(prompt, codex_options):
+        yield message
 ```
-src/claif_cod/
-├── __init__.py       # Main entry point, exports query() function
-├── cli.py           # Fire-based CLI with rich terminal output
-├── client.py        # Client orchestration and message conversion
-├── transport.py     # Async subprocess communication layer
-└── types.py         # Type definitions and data structures
+
+Features:
+- Minimal overhead (22 lines)
+- Option conversion from Claif to Codex formats
+- Loguru debug logging
+- Clean async generator interface
+
+#### CLI Module (`cli.py`)
+
+Fire-based CLI with rich terminal output (334 lines):
+
+```python
+class CodexCLI:
+    def query(self, prompt: str, **kwargs):
+        """Execute a code generation query."""
+        
+    def stream(self, prompt: str, **kwargs):
+        """Stream responses in real-time."""
+        
+    def models(self):
+        """List available models."""
+        
+    def config(self, action: str = "show", **kwargs):
+        """Manage configuration."""
 ```
 
-### Component Details
+Key features:
+- Rich progress spinners and tables
+- Response formatting (text, json, code)
+- Async execution with proper error handling
+- Configuration management
 
-#### `__init__.py` - Main Entry Point (22 lines)
-- Exports the primary `query()` async generator function
-- Converts Claif's `ClaifOptions` to `CodexOptions`
-- Imports from `claif.common` for unified Message types
-- Uses loguru for debug logging
-- Version string: "0.1.0"
+#### Client Module (`client.py`)
 
-#### `cli.py` - Command Line Interface (334 lines)
-- `CodexCLI` class with Fire-based commands
-- Rich console output with progress spinners and tables
-- Commands implemented:
-  - `query`: Execute a prompt with options
-  - `stream`: Real-time streaming responses
-  - `models`: List available models
-  - `model_info`: Show model details
-  - `modes`: List action modes
-  - `health`: Check service status
-  - `config`: Manage configuration
-  - `version`: Show version info
-- Async execution with `asyncio.run()`
-- Response formatting (text, json, code modes)
+Orchestrates transport lifecycle (55 lines):
 
-#### `client.py` - Client Orchestration (55 lines)
-- `CodexClient` class manages transport lifecycle
-- Module-level `_client` instance for reuse
-- Converts `CodexMessage` to Claif `Message` format
-- Handles connection/disconnection
-- Error propagation from transport layer
+```python
+class CodexClient:
+    def __init__(self):
+        self.transport = None
+        
+    async def query(self, prompt: str, options: CodexOptions):
+        # Lazy transport creation
+        if not self.transport:
+            self.transport = CodexTransport(options.timeout)
+            
+        # Convert messages
+        async for codex_msg in self.transport.send_query(prompt, options):
+            yield self._convert_message(codex_msg)
+```
 
-#### `transport.py` - Async Subprocess Layer (171 lines)
-- `CodexTransport` class with anyio for async subprocess
-- Key methods:
-  - `_find_cli_path()`: Platform-aware CLI discovery
-  - `_build_command()`: Construct CLI arguments
-  - `send_query()`: Execute subprocess and stream output
-  - `_parse_output_line()`: JSON line parsing
-- Uses `anyio.open_process()` for subprocess management
-- Graceful timeout handling with process termination
-- Stderr collection for error reporting
+Features:
+- Lazy transport initialization
+- Message format conversion
+- Clean separation of concerns
+- Module-level instance for reuse
 
-#### `types.py` - Type Definitions (142 lines)
-- Data classes with `@dataclass` decorator:
-  - `CodexOptions`: All configuration options
-  - `ContentBlock` (base class)
-  - `TextBlock`, `CodeBlock`, `ErrorBlock`: Content types
-  - `CodexMessage`: Main message structure
-  - `ResultMessage`: Completion metadata
-- Method `to_claif_message()` for format conversion
-- Comprehensive type hints for IDE support
+#### Transport Module (`transport.py`)
+
+Async subprocess management (171 lines):
+
+```python
+class CodexTransport:
+    async def send_query(self, prompt: str, options: CodexOptions):
+        # Find CLI
+        cli_path = self._find_cli_path()
+        
+        # Build command
+        cmd = self._build_command(cli_path, prompt, options)
+        
+        # Execute with streaming
+        async with await anyio.open_process(cmd) as proc:
+            async for line in proc.stdout:
+                if message := self._parse_output_line(line):
+                    yield message
+```
+
+Key methods:
+- `_find_cli_path()` - Platform-aware CLI discovery
+- `_build_command()` - Safe argument construction
+- `_parse_output_line()` - Resilient JSON parsing
+- Timeout handling with process termination
+
+#### Types Module (`types.py`)
+
+Comprehensive type definitions (142 lines):
+
+```python
+@dataclass
+class CodexOptions:
+    model: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    action_mode: str | None = None
+    working_dir: Path | None = None
+    system_prompt: str | None = None
+    auto_approve_everything: bool = False
+    timeout: int | None = None
+    
+@dataclass
+class CodexMessage:
+    message_type: str
+    content: list[ContentBlock]
+    metadata: dict[str, Any] | None = None
+    
+    def to_claif_message(self) -> Message:
+        """Convert to Claif format."""
+```
+
+Content block hierarchy:
+- `ContentBlock` (base)
+- `TextBlock` - Regular text
+- `CodeBlock` - Code snippets
+- `ErrorBlock` - Error messages
 
 ### Message Flow
 
-1. **User Input** → CLI (`fire.Fire`) or Python API
-2. **Option Conversion** → `ClaifOptions` → `CodexOptions` in `__init__.py`
+1. **User Input** → CLI or Python API call
+2. **Option Conversion** → `ClaifOptions` → `CodexOptions`
 3. **Client Layer** → `CodexClient.query()` manages lifecycle
 4. **Transport Layer** → `CodexTransport.send_query()` spawns subprocess
 5. **CLI Discovery** → Check env var → PATH → common locations
-6. **Command Building** → Construct args: `[cli_path, "query", "--model", model, ...]`
+6. **Command Building** → `[cli_path, "query", "--model", model, ...]`
 7. **Subprocess Execution** → `anyio.open_process()` with JSON streaming
-8. **Output Parsing** → Line-by-line JSON parsing in `_parse_output_line()`
-9. **Message Conversion** → `CodexMessage.to_claif_message()` normalizes format
-10. **Async Yielding** → Messages yielded back through async generators
+8. **Output Parsing** → Line-by-line JSON parsing
+9. **Message Conversion** → `CodexMessage.to_claif_message()`
+10. **Async Yielding** → Messages yielded back through generators
+
+### Code Structure
+
+```
+claif_cod/
+├── src/claif_cod/
+│   ├── __init__.py       # Main entry point (22 lines)
+│   ├── cli.py           # Fire CLI interface (334 lines)
+│   ├── client.py        # Client orchestration (55 lines)
+│   ├── transport.py     # Subprocess management (171 lines)
+│   └── types.py         # Type definitions (142 lines)
+├── tests/
+│   └── test_package.py  # Basic tests
+├── pyproject.toml       # Package configuration
+├── README.md            # This file
+└── CLAUDE.md            # Development guide
+```
 
 ### Configuration
 
 Environment variables:
-- `CODEX_CLI_PATH`: Path to Codex CLI binary
-- `CODEX_DEFAULT_MODEL`: Default model (o4-mini)
-- `CODEX_ACTION_MODE`: Default action mode (review)
-- `CODEX_TIMEOUT`: Default timeout in seconds
+- `CODEX_CLI_PATH` - Path to Codex CLI binary
+- `CODEX_DEFAULT_MODEL` - Default model (o4-mini)
+- `CODEX_ACTION_MODE` - Default action mode (review)
+- `CODEX_TIMEOUT` - Default timeout in seconds
 
 Configuration file (`~/.claif/config.toml`):
 ```toml
@@ -391,37 +503,84 @@ default = "o4-mini"
 
 ### Models Available
 
-The package supports any model that the Codex CLI accepts. Common models include:
+The package supports any model that the Codex CLI accepts:
 
-- **o4-mini**: Fast, efficient model for quick tasks (default)
-- **o4**: Balanced model for general use
-- **o4-preview**: Latest features and capabilities
-- **o3.5**: Previous generation model
-
-The actual available models depend on your Codex CLI version and API access.
+- **o4-mini** - Fast, efficient for quick tasks (default)
+- **o4** - Balanced performance and capability
+- **o4-preview** - Latest features and improvements
+- **o3.5** - Previous generation model
 
 ### Action Modes
 
-- **review** (default): Preview changes before applying
-- **interactive**: Approve each change individually
-- **full-auto**: Apply all changes automatically
+- **review** (default) - Preview changes before applying
+- **interactive** - Approve each change individually
+- **full-auto** - Apply all changes automatically
+
+## Installation with Bun
+
+While the Codex CLI is typically installed via npm, you can use Bun for faster installation:
+
+```bash
+# Install bun if needed
+curl -fsSL https://bun.sh/install | bash
+
+# Install Codex CLI with bun
+bun add -g @openai/codex
+
+# The CLI will be available at
+~/.bun/bin/codex
+```
+
+## Why Use claif_cod?
+
+### 1. **Unified Interface**
+- Consistent API across all Claif providers
+- Easy switching between Codex, Claude, and Gemini
+- Standardized message format
+
+### 2. **Safety First**
+- Default review mode prevents unwanted changes
+- Multiple action modes for different risk levels
+- Working directory isolation
+- Timeout protection
+
+### 3. **Developer Experience**
+- Rich CLI with beautiful output
+- Full async support
+- Comprehensive type hints
+- Clear error messages
+
+### 4. **Production Ready**
+- Robust subprocess handling
+- Graceful error recovery
+- Platform-specific optimizations
+- Extensive logging
+
+### 5. **Integration**
+- Seamless Claif framework integration
+- Plugin architecture
+- Configuration inheritance
+- Compatible with existing codebases
 
 ## Best Practices
 
-1. **Always start with review mode** to understand what changes will be made
-2. **Use specific, clear prompts** for better results
-3. **Set appropriate timeouts** for complex operations (default: 180s)
-4. **Test generated code** thoroughly before production use
-5. **Use version control** before applying automated changes
-6. **Configure working directory** to limit scope of operations
-7. **Check CLI path** with `health` command if encountering issues
-8. **Use verbose mode** (`--verbose`) for debugging transport issues
+1. **Always start with review mode** to understand changes
+2. **Use specific prompts** for better results
+3. **Set appropriate timeouts** for complex operations
+4. **Test generated code** thoroughly
+5. **Use version control** before applying changes
+6. **Configure working directory** to limit scope
+7. **Check CLI path** with `health` command
+8. **Use verbose mode** for debugging
 
-## Development
+## Contributing
 
-### Setting Up Development Environment
+See [CLAUDE.md](CLAUDE.md) for development guidelines.
+
+### Development Setup
+
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/twardoch/claif_cod.git
 cd claif_cod
 
@@ -433,70 +592,64 @@ pre-commit install
 ```
 
 ### Running Tests
+
 ```bash
-# Run all tests with pytest
+# Run all tests
 pytest
 
 # Run with coverage
 pytest --cov=claif_cod --cov-report=html
 
-# Run specific test file
-pytest tests/test_package.py -v
+# Run specific test
+pytest tests/test_transport.py -v
 ```
 
-### Code Quality Tools
+### Code Quality
+
 ```bash
-# Format code with ruff
+# Format code
 ruff format src/claif_cod tests
 
-# Check linting
+# Lint code
 ruff check src/claif_cod tests --fix
 
-# Type checking with mypy
+# Type checking
 mypy src/claif_cod
 
-# Run all formatters (as per CLAUDE.md)
-fd -e py -x autoflake {}
-fd -e py -x pyupgrade --py312-plus {}
-fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
-fd -e py -x ruff format --respect-gitignore --target-version py312 {}
+# Run all checks (as per CLAUDE.md)
+fd -e py -x ruff format {}
+fd -e py -x ruff check --fix --unsafe-fixes {}
+python -m pytest
 ```
-
-### Building and Publishing
-```bash
-# Build distribution
-python -m build
-
-# Check distribution
-twine check dist/*
-
-# Upload to PyPI (maintainers only)
-twine upload dist/*
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests and linting
-5. Commit with descriptive message
-6. Push to your fork
-7. Open a Pull Request
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+Copyright (c) 2025 Adam Twardoch
+
 ## Links
 
-- [GitHub Repository](https://github.com/twardoch/claif_cod)
-- [PyPI Package](https://pypi.org/project/claif_cod/)
-- [Claif Framework](https://github.com/twardoch/claif)
-- [Documentation](https://claif-cod.readthedocs.io/)
+### claif_cod Resources
 
-## Related Projects
+- [GitHub Repository](https://github.com/twardoch/claif_cod) - Source code
+- [PyPI Package](https://pypi.org/project/claif_cod/) - Latest release
+- [Issue Tracker](https://github.com/twardoch/claif_cod/issues) - Bug reports
+- [Documentation](https://claif-cod.readthedocs.io/) - Full docs
 
-- [Claif](https://github.com/twardoch/claif) - The main framework
-- [Claif_CLA](https://github.com/twardoch/claif_cla) - Claude provider
-- [Claif_GEM](https://github.com/twardoch/claif_gem) - Gemini provider
+### Related Projects
+
+**Claif Ecosystem:**
+- [Claif](https://github.com/twardoch/claif) - Main framework
+- [claif_cla](https://github.com/twardoch/claif_cla) - Claude provider
+- [claif_gem](https://github.com/twardoch/claif_gem) - Gemini provider
+
+**Upstream Projects:**
+- [OpenAI Codex](https://openai.com/blog/openai-codex/) - Codex documentation
+- [OpenAI API](https://platform.openai.com/) - API reference
+
+**Tools & Libraries:**
+- [Fire](https://github.com/google/python-fire) - CLI framework
+- [Rich](https://github.com/Textualize/rich) - Terminal formatting
+- [anyio](https://github.com/agronholm/anyio) - Async compatibility
+- [Loguru](https://github.com/Delgan/loguru) - Logging library

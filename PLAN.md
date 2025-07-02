@@ -1,134 +1,222 @@
-# claif_cod Development Plan - Production Ready
+# claif_cod Development Plan - v1.x Stable MVP
 
-## Project Vision
+## Overview
 
-`claif_cod` provides production-ready integration with OpenAI's Codex CLI tool within the Claif framework. **MVP v1.0 is complete** - the package works reliably with real @openai/codex integration and auto-install functionality across all platforms.
+`claif_cod` is the Codex/OpenAI provider for Claif, integrating with OpenAI's Codex CLI tool. The goal for v1.x is to create a stable, reliable MVP with comprehensive testing and cross-platform compatibility.
 
-## Current Status ✅
+## Current Status (v1.0.7)
 
-### MVP Requirements ACHIEVED
-1. **Production Integration** ✅
-   - Real OpenAI Codex CLI functionality working
-   - Uses official @openai/codex npm package
-   - JSON response format from real OpenAI API
-   - Supports actual Codex commands and capabilities
+**Core Functionality**: Working Codex CLI integration ✅
+**Auto-Install**: Automatic CLI installation when missing ✅
+**Subprocess Management**: Async with anyio ✅
+**CLI Interface**: Fire-based with clean output ✅
 
-2. **Auto-Install Support (Issue #201)** ✅
-   - Detects missing codex CLI installation
-   - Auto-installs via npm when missing
-   - Integrated with bun bundling for offline scenarios
-   - Clear user guidance during installation process
+## MVP v1.x Improvement Plan
 
-3. **Streamlined CLI Interface** ✅
-   - Fire-based CLI with simple, clean output
-   - Essential commands working: ask, stream, health, models
-   - Loguru-based logging (no rich dependencies)
-   - Proper error handling with actionable messages
+### 1. Testing & Reliability (Critical)
 
-4. **Cross-Platform Reliability** ✅
-   - Works seamlessly on Windows, macOS, Linux
-   - Handles different Node.js installation paths
-   - Robust subprocess management with timeouts
-   - Platform-specific path discovery
+#### Unit Testing
+- [ ] Add pytest test suite for all modules
+  - [ ] Test transport.py subprocess handling
+  - [ ] Test client.py message conversion
+  - [ ] Test CLI command construction
+  - [ ] Test JSON parsing logic
+  - [ ] Test install.py functionality
+- [ ] Mock subprocess operations
+- [ ] Test timeout and cancellation
+- [ ] Achieve 80%+ code coverage
 
-## Architecture Status ✅
+#### Integration Testing
+- [ ] Test with real Codex CLI
+- [ ] Test auto-install flow
+- [ ] Test different response formats
+- [ ] Test error conditions
+- [ ] Cross-platform compatibility
 
+#### Subprocess Reliability
+- [ ] Handle process termination cleanly
+- [ ] Test with slow/hanging processes
+- [ ] Verify memory cleanup
+- [ ] Test concurrent operations
+- [ ] Handle zombie processes
+
+### 2. Error Handling & Messages
+
+#### Better Error Context
+- [ ] Add context to subprocess errors
+- [ ] Clear API key error messages
+- [ ] Installation failure guidance
+- [ ] Network timeout explanations
+- [ ] Model availability errors
+
+#### Subprocess Error Handling
+- [ ] Capture stderr properly
+- [ ] Parse CLI error formats
+- [ ] Handle non-zero exit codes
+- [ ] Timeout error clarity
+- [ ] Process spawn failures
+
+### 3. CLI Discovery & Installation
+
+#### Cross-Platform Discovery
+- [ ] Test all discovery paths
+- [ ] Handle symlinks correctly
+- [ ] Support custom install paths
+- [ ] Verify executable permissions
+- [ ] Handle path spaces/quotes
+
+#### Installation Robustness
+- [ ] Verify npm/bun availability
+- [ ] Handle partial installs
+- [ ] Support proxy environments
+- [ ] Offline install options
+- [ ] Version compatibility checks
+
+### 4. Transport Layer Improvements
+
+#### Async Operations
+- [ ] Proper cleanup on cancellation
+- [ ] Handle process groups
+- [ ] Stream buffering optimization
+- [ ] Backpressure handling
+- [ ] Resource leak prevention
+
+#### Performance
+- [ ] Profile subprocess overhead
+- [ ] Optimize JSON parsing
+- [ ] Reduce memory usage
+- [ ] Connection pooling
+- [ ] Response streaming
+
+### 5. Documentation & Examples
+
+#### User Documentation
+- [ ] Installation guide
+- [ ] API key setup guide
+- [ ] Model selection guide
+- [ ] Troubleshooting section
+- [ ] Common errors FAQ
+
+#### Developer Documentation
+- [ ] Architecture overview
+- [ ] Transport layer design
+- [ ] Testing approach
+- [ ] Contributing guide
+- [ ] API reference
+
+### 6. Code Organization
+
+#### Module Structure
 ```
 claif_cod/
-├── transport.py   # Async subprocess management ✅
-├── client.py      # Claif provider interface ✅
-├── cli.py         # Fire-based CLI (loguru only) ✅
-├── types.py       # Type definitions ✅
-└── install.py     # Auto-install functionality ✅
+├── __init__.py        # Clean public API
+├── transport.py       # Robust subprocess layer
+├── client.py         # Tested client wrapper
+├── cli.py            # User-friendly CLI
+├── types.py          # Well-defined types
+├── install.py        # Cross-platform installer
+└── utils.py          # Shared utilities
 ```
 
-## Quality Roadmap (v1.1+)
+#### Key Improvements Needed
 
-### Phase 1: Testing & Reliability
-- [ ] **Unit Tests**: Comprehensive unit test coverage (80%+ target)
-- [ ] **Mock Testing**: Mock subprocess calls for reliable testing
-- [ ] **Cross-Platform Tests**: Automated testing on Windows, macOS, Linux
-- [ ] **Error Handling**: Improve edge case handling and subprocess error messages
+#### transport.py
+- Better process lifecycle management
+- Improved error context
+- Resource cleanup
+- Performance monitoring
 
-### Phase 2: User Experience Polish
-- [ ] **CLI Improvements**: Standardize `--version`, `--help` across commands
-- [ ] **Error Messages**: Make errors actionable with clear next steps
-- [ ] **Performance**: Optimize startup time and reduce overhead
-- [ ] **Documentation**: Complete API docs and troubleshooting guides
+#### client.py
+- Message validation
+- Error wrapping
+- Retry logic
+- Connection pooling
 
-### Phase 3: Release Automation
-- [ ] **GitHub Actions**: Set up CI/CD pipelines
-- [ ] **PyPI Publishing**: Automated release workflows
-- [ ] **Version Management**: Coordinate with main claif package versions
-- [ ] **Quality Gates**: Ensure all tests pass before releases
+#### cli.py
+- Standardized help text
+- Progress indicators
+- Better error display
+- Command validation
 
-## Technical Debt & Improvements
+## Quality Standards
 
 ### Code Quality
-- [ ] Improve API key validation with better error messages (OPENAI_API_KEY)
-- [ ] Add async cleanup improvements in transport layer
-- [ ] Enhance timeout handling for long-running queries
-- [ ] Add more specific exception types for different failure modes
+- 100% type hint coverage
+- Comprehensive docstrings
+- Maximum cyclomatic complexity: 10
+- Clear error messages
+- Consistent naming
 
-### Testing Priorities
-- [ ] Transport layer tests with subprocess mocking
-- [ ] CLI discovery logic tests with various environments
-- [ ] Command construction and output parsing tests
-- [ ] Auto-install tests with mocked npm/bun operations
-- [ ] Real Codex CLI response parsing tests
+### Testing Standards
+- Unit tests for all functions
+- Integration tests for workflows
+- Mock all subprocess calls
+- Test all error paths
+- Cross-platform verification
 
-## Success Metrics ACHIEVED ✅
+### Documentation Standards
+- Complete README
+- API documentation
+- Architecture diagrams
+- Troubleshooting guide
+- Performance tips
 
-1. **Usability**: Works with `uvx claif_cod` out of box ✅
-2. **Functionality**: Real OpenAI Codex integration works ✅
-3. **Configuration**: OPENAI_API_KEY setup process functional ✅
-4. **Reliability**: Handles missing dependencies gracefully ✅
-5. **Simplicity**: Minimal codebase, easy to understand ✅
+## Success Criteria for v1.x
 
-## Future Enhancements (v1.2+)
+1. **Reliability**: 99.9% success rate for subprocess operations
+2. **Performance**: < 100ms overhead per operation
+3. **Testing**: 80%+ test coverage with mocks
+4. **Error Handling**: Clear, actionable error messages
+5. **Cross-Platform**: Verified on Windows, macOS, Linux
+6. **Documentation**: Complete user and API docs
+7. **Installation**: Auto-install works on clean systems
 
-### Advanced Features (Post-MVP)
-- Response caching for improved performance
-- Enhanced session management capabilities
-- Advanced retry logic with exponential backoff
-- Connection pooling for multiple queries
-- Extended Codex-specific features
+## Development Priorities
 
-### Non-Goals Maintained
-- Complex features beyond basic needs (keep it simple)
-- Extensive configuration options (favor conventions)
-- Performance optimization beyond reasonable limits
+### Immediate (v1.0.8)
+1. Add comprehensive test suite
+2. Fix subprocess cleanup issues
+3. Improve error messages
 
-## Configuration Guide
+### Short-term (v1.1.0)
+1. Cross-platform testing
+2. Complete documentation
+3. Performance optimization
 
-For developers using claif_cod with OpenAI Codex:
+### Medium-term (v1.2.0)
+1. Advanced CLI features
+2. Response caching
+3. Extended error recovery
 
-1. **API Key Setup**: Set OPENAI_API_KEY environment variable ✅
-2. **Installation**: Run `claif_cod install` for auto-setup ✅
-3. **Usage**: Use standard CLAIF patterns for querying ✅
-4. **Error Handling**: Auto-install handles missing CLI dependencies ✅
-5. **Authentication**: Codex CLI handles OpenAI API authentication ✅
+## Non-Goals for v1.x
 
-## Release Strategy
+- Complex UI features
+- Custom protocol extensions
+- Database persistence
+- Multi-user support
+- Response transformation
 
-- **v1.0**: ✅ Production Codex integration with auto-install (COMPLETE)
-- **v1.1**: Quality improvements, testing, documentation
-- **v1.2**: Enhanced features based on user feedback
+## Testing Strategy
 
-## Current Priorities
+### Unit Test Focus
+- Mock all subprocess.Popen calls
+- Test JSON parsing edge cases
+- Verify timeout behavior
+- Test CLI discovery logic
+- Validate error handling
 
-**Immediate Focus for v1.1:**
-1. Add comprehensive unit test coverage
-2. Set up GitHub Actions CI/CD
-3. Complete documentation and troubleshooting guides
-4. Verify and document cross-platform compatibility
-5. Prepare for professional PyPI release
+### Integration Test Focus
+- Real CLI execution (when available)
+- Cross-platform path handling
+- Installation verification
+- Network failure scenarios
+- API key validation
 
-**Quality Gates for v1.1:**
-- 80%+ unit test coverage on core modules
-- All linting and type checking passes
-- Cross-platform testing completed
-- Documentation complete and accurate
-- Auto-install functionality verified on clean systems
+### Performance Testing
+- Subprocess spawn overhead
+- JSON parsing speed
+- Memory usage profiling
+- Concurrent operation limits
+- Response streaming efficiency
 
-The foundation is solid with real OpenAI Codex integration working reliably. Now we focus on quality, testing, and professional polish for confident v1.1 release.
+Keep the codebase lean and focused on being a reliable subprocess-based provider for Claif.
