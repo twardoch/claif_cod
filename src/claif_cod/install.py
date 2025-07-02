@@ -1,7 +1,6 @@
 # this_file: claif_cod/src/claif_cod/install.py
 
 import shutil
-from pathlib import Path
 
 from loguru import logger
 
@@ -85,14 +84,13 @@ def install_codex() -> dict:
             prompt_tool_configuration("Codex", config_commands)
 
             return {"installed": ["codex"], "failed": []}
-        else:
-            msg = f"Bundled codex executable not found at {codex_source}"
-            logger.error(msg)
-            return {
-                "installed": [],
-                "failed": ["codex"],
-                "message": "bundled executable not found",
-            }
+        msg = f"Bundled codex executable not found at {codex_source}"
+        logger.error(msg)
+        return {
+            "installed": [],
+            "failed": ["codex"],
+            "message": "bundled executable not found",
+        }
 
     except Exception as e:
         logger.error(f"Failed to install Codex: {e}")

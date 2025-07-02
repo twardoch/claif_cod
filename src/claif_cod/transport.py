@@ -1,4 +1,4 @@
-"""Transport layer forClaif Codex CLI communication."""
+"""Transport layer for Claif Codex CLI communication."""
 
 import json
 import os

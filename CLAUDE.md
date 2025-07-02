@@ -16,7 +16,7 @@ This document provides guidance for AI agents working on the`claif_cod` codebase
 
 2. **Client Layer** (`client.py`)
    - Orchestrates transport lifecycle
-   - Converts between Codex andClaif message formats
+   - Converts between Codex and Claif message formats
    - Manages connection state
 
 3. **CLI Interface** (`cli.py`)
@@ -281,7 +281,7 @@ class MockCodexCLI:
 ### Short Term (v1.x)
 
 1. **Complete test coverage** (target: >80%)
-2. **Configuration file support** viaClaif config system
+2. **Configuration file support** via Claif config system
 3. **Better error messages** with actionable hints
 4. **Mock CLI for testing** without real Codex binary
 5. **Documentation site** with API reference

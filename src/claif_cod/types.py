@@ -1,4 +1,4 @@
-"""Type definitions forClaif Codex wrapper."""
+"""Type definitions for Claif Codex wrapper."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -68,7 +68,7 @@ class CodexMessage:
     content: list[ContentBlock]
 
     def to_claif_message(self) -> Message:
-        """Convert toClaif message."""
+        """Convert to Claif message."""
         # Convert content blocks to text
         text_parts = []
         for block in self.content:
@@ -96,7 +96,7 @@ class CodexResponse:
     raw_response: dict[str, Any] | None = None
 
     def to_claif_message(self) -> Message:
-        """Convert toClaif message."""
+        """Convert to Claif message."""
         role = MessageRole.ASSISTANT if self.role == "assistant" else MessageRole.USER
         return Message(role=role, content=self.content)
 

@@ -115,6 +115,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for multiple action modes (review, interactive, full-auto)
 - Rich terminal output with progress indicators
 - Model management commands
-- Configuration system integration withClaif
+- Configuration system integration with Claif
 - Type definitions and data structures
 - Error handling and timeout protection

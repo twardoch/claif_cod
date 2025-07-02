@@ -1,4 +1,4 @@
-#`claif_cod` - Codex Provider forClaif
+#`claif_cod` - Codex Provider for Claif
 
 ## Quickstart
 
@@ -15,7 +15,7 @@ pip install claif_cod && claif-cod query "Write a Python function to calculate f
 Claif_COD acts as a specialized provider that creates an async subprocess wrapper around the Codex CLI binary. The package:
 
 - **Manages subprocess communication** with the Codex CLI binary through async streaming
-- **Converts betweenClaif and Codex message formats** for unified API compatibility
+- **Converts between Claif and Codex message formats** for unified API compatibility
 - **Provides multiple action modes** (review, interactive, full-auto) for code safety
 - **Handles platform-specific CLI discovery** across Windows, macOS, and Linux
 - **Implements timeout protection** and graceful error handling for long operations
@@ -45,9 +45,9 @@ cd claif_cod
 pip install -e .
 ```
 
-### WithClaif Framework
+### With Claif Framework
 ```bash
-# InstallClaif with Codex support
+# Install Claif with Codex support
 pip install claif[cod]
 # or
 pip install claif claif_cod
@@ -266,7 +266,7 @@ async def safe_query():
 ### 4. **Integration**
 - Works seamlessly with the Claif framework
 - Plugin architecture for easy extension
-- Configuration inheritance fromClaif
+- Configuration inheritance from Claif
 - Compatible with existing codebases
 
 ## How`claif_cod` Works
@@ -306,7 +306,7 @@ src/claif_cod/
 
 #### `__init__.py` - Main Entry Point (22 lines)
 - Exports the primary `query()` async generator function
-- ConvertsClaif's `ClaifOptions` to `CodexOptions`
+- Converts Claif's `ClaifOptions` to `CodexOptions`
 - Imports from `claif.common` for unified Message types
 - Uses loguru for debug logging
 - Version string: "0.1.0"
@@ -329,7 +329,7 @@ src/claif_cod/
 #### `client.py` - Client Orchestration (55 lines)
 - `CodexClient` class manages transport lifecycle
 - Module-level `_client` instance for reuse
-- Converts `CodexMessage` toClaif `Message` format
+- Converts `CodexMessage` to Claif `Message` format
 - Handles connection/disconnection
 - Error propagation from transport layer
 

@@ -1,4 +1,4 @@
-"""Fire-based CLI forClaif Codex wrapper."""
+"""Fire-based CLI for Claif Codex wrapper."""
 
 import asyncio
 import os

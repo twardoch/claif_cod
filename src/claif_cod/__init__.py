@@ -15,11 +15,11 @@ async def query(
     prompt: str,
     options: ClaifOptions | None = None,
 ) -> AsyncIterator[Message]:
-    """Query Codex usingClaif interface.
+    """Query Codex using Claif interface.
 
     Args:
         prompt: The prompt to send to Codex
-        options: OptionalClaif options
+        options: Optional Claif options
 
     Yields:
         Messages from Codex
@@ -27,7 +27,7 @@ async def query(
     if options is None:
         options = ClaifOptions()
 
-    # ConvertClaif options to Codex options
+    # Convert Claif options to Codex options
     codex_options = CodexOptions(
         model=options.model or "o4-mini",
         temperature=options.temperature,

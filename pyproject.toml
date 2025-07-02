@@ -11,7 +11,7 @@
 #------------------------------------------------------------------------------
 [project]
 name = 'claif_cod' # Package name on PyPI
-description = 'Codex provider forClaif - AI-powered code generation and manipulation through OpenAI Codex CLI' # Short description
+description = 'Codex provider for Claif - AI-powered code generation and manipulation through OpenAI Codex CLI' # Short description
 readme = 'README.md' # Path to README file
 requires-python = '>=3.10' # Minimum Python version
 keywords = [

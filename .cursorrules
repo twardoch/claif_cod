@@ -4,7 +4,7 @@ This document provides guidance for AI agents working on the`claif_cod` codebase
 
 ## Project Overview
 
-**CLAIF_COD** is a provider package for theClaif framework that wraps OpenAI's Codex CLI tool. It enables AI-powered code generation and manipulation through async subprocess management.
+**CLAIF_COD** is a provider package for the Claif framework that wraps OpenAI's Codex CLI tool. It enables AI-powered code generation and manipulation through async subprocess management.
 
 ### Key Components
 
@@ -16,7 +16,7 @@ This document provides guidance for AI agents working on the`claif_cod` codebase
 
 2. **Client Layer** (`client.py`)
    - Orchestrates transport lifecycle
-   - Converts between Codex andClaif message formats
+   - Converts between Codex and Claif message formats
    - Manages connection state
 
 3. **CLI Interface** (`cli.py`)
@@ -281,7 +281,7 @@ class MockCodexCLI:
 ### Short Term (v1.x)
 
 1. **Complete test coverage** (target: >80%)
-2. **Configuration file support** viaClaif config system
+2. **Configuration file support** via Claif config system
 3. **Better error messages** with actionable hints
 4. **Mock CLI for testing** without real Codex binary
 5. **Documentation site** with API reference
