@@ -1,6 +1,6 @@
 # this_file: pyproject.toml
 #==============================================================================
-# CLAIF_COD PACKAGE CONFIGURATION
+#`claif_cod` PACKAGE CONFIGURATION
 # This pyproject.toml defines the package metadata, dependencies, build system,
 # and development environment for the claif_cod package.
 #==============================================================================
@@ -11,7 +11,7 @@
 #------------------------------------------------------------------------------
 [project]
 name = 'claif_cod' # Package name on PyPI
-description = 'Codex provider for CLAIF - AI-powered code generation and manipulation through OpenAI Codex CLI' # Short description
+description = 'Codex provider forClaif - AI-powered code generation and manipulation through OpenAI Codex CLI' # Short description
 readme = 'README.md' # Path to README file
 requires-python = '>=3.10' # Minimum Python version
 keywords = [

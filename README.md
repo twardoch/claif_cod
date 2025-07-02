@@ -1,28 +1,28 @@
-# CLAIF_COD - Codex Provider for CLAIF
+#`claif_cod` - Codex Provider forClaif
 
 ## Quickstart
 
-CLAIF_COD is an async Python wrapper that integrates CLI-based AI code generation tools into the CLAIF framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks. Version 1.0.5 improves subprocess reliability by switching to native asyncio.
+CLAIF_COD is an async Python wrapper that integrates CLI-based AI code generation tools into theClaif framework. It provides a subprocess-based transport layer that communicates with AI CLIs through JSON streaming, offering both command-line and Python API interfaces for code generation tasks. Version 1.0.5 improves subprocess reliability by switching to native asyncio.
 
 ```bash
 pip install claif_cod && claif-cod query "Write a Python function to calculate fibonacci numbers"
 ```
 
-**CLAIF_COD** is a Python package that provides integration with OpenAI's Codex CLI as part of the CLAIF (Command-Line Artificial Intelligence Framework) ecosystem. It enables AI-powered code generation, refactoring, and manipulation through both command-line and programmatic interfaces.
+**CLAIF_COD** is a Python package that provides integration with OpenAI's Codex CLI as part of theClaif (Command-Line Artificial Intelligence Framework) ecosystem. It enables AI-powered code generation, refactoring, and manipulation through both command-line and programmatic interfaces.
 
-## What CLAIF_COD Does
+## What`claif_cod` Does
 
 CLAIF_COD acts as a specialized provider that creates an async subprocess wrapper around the Codex CLI binary. The package:
 
 - **Manages subprocess communication** with the Codex CLI binary through async streaming
-- **Converts between CLAIF and Codex message formats** for unified API compatibility
+- **Converts betweenClaif and Codex message formats** for unified API compatibility
 - **Provides multiple action modes** (review, interactive, full-auto) for code safety
 - **Handles platform-specific CLI discovery** across Windows, macOS, and Linux
 - **Implements timeout protection** and graceful error handling for long operations
 - **Offers both CLI and Python API** interfaces with rich terminal output
 - **Logs operations with loguru** for debugging and monitoring
 
-The transport layer spawns the Codex CLI as a subprocess, streams JSON-formatted messages, and normalizes them into the CLAIF message format for consistent cross-provider usage.
+The transport layer spawns the Codex CLI as a subprocess, streams JSON-formatted messages, and normalizes them into theClaif message format for consistent cross-provider usage.
 
 ## Installation
 
@@ -45,9 +45,9 @@ cd claif_cod
 pip install -e .
 ```
 
-### With CLAIF Framework
+### WithClaif Framework
 ```bash
-# Install CLAIF with Codex support
+# InstallClaif with Codex support
 pip install claif[cod]
 # or
 pip install claif claif_cod
@@ -244,7 +244,7 @@ async def safe_query():
         print(f"Unexpected error: {e}")
 ```
 
-## Why CLAIF_COD is Useful
+## Why`claif_cod` is Useful
 
 ### 1. **Unified Interface**
 - Consistent API across different AI providers
@@ -264,12 +264,12 @@ async def safe_query():
 - Comprehensive documentation
 
 ### 4. **Integration**
-- Works seamlessly with the CLAIF framework
+- Works seamlessly with theClaif framework
 - Plugin architecture for easy extension
-- Configuration inheritance from CLAIF
+- Configuration inheritance fromClaif
 - Compatible with existing codebases
 
-## How CLAIF_COD Works
+## How`claif_cod` Works
 
 ### Architecture Overview
 
@@ -277,9 +277,9 @@ async def safe_query():
 ┌─────────────────────┐
 │    User Code        │
 ├─────────────────────┤
-│    CLAIF Core       │  ← Unified interface (Message types)
+│   Claif Core       │  ← Unified interface (Message types)
 ├─────────────────────┤
-│    CLAIF_COD        │  ← This package (provider adapter)
+│   `claif_cod`        │  ← This package (provider adapter)
 ├─────────────────────┤
 │   CodexClient       │  ← Client orchestration layer
 ├─────────────────────┤
@@ -306,7 +306,7 @@ src/claif_cod/
 
 #### `__init__.py` - Main Entry Point (22 lines)
 - Exports the primary `query()` async generator function
-- Converts CLAIF's `ClaifOptions` to `CodexOptions`
+- ConvertsClaif's `ClaifOptions` to `CodexOptions`
 - Imports from `claif.common` for unified Message types
 - Uses loguru for debug logging
 - Version string: "0.1.0"
@@ -329,7 +329,7 @@ src/claif_cod/
 #### `client.py` - Client Orchestration (55 lines)
 - `CodexClient` class manages transport lifecycle
 - Module-level `_client` instance for reuse
-- Converts `CodexMessage` to CLAIF `Message` format
+- Converts `CodexMessage` toClaif `Message` format
 - Handles connection/disconnection
 - Error propagation from transport layer
 

@@ -1,4 +1,4 @@
-"""Fire-based CLI for CLAIF Codex wrapper."""
+"""Fire-based CLI forClaif Codex wrapper."""
 
 import asyncio
 import os
@@ -13,20 +13,28 @@ from claif.common import (
     ResponseMetrics,
     format_metrics,
     format_response,
-    install_provider,
     load_config,
-    uninstall_provider,
 )
 from loguru import logger
-from rich.console import Console
-from rich.live import Live
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.table import Table
 
 from claif_cod.client import query
 from claif_cod.types import CodexOptions
 
-console = Console()
+
+def _print(message: str) -> None:
+    """Simple print function for output."""
+
+
+def _print_error(message: str) -> None:
+    """Print error message."""
+
+
+def _print_success(message: str) -> None:
+    """Print success message."""
+
+
+def _print_warning(message: str) -> None:
+    """Print warning message."""
 
 
 class CodexCLI:
@@ -107,7 +115,7 @@ class CodexCLI:
                     self._display_code_message(message)
                 else:
                     formatted = format_response(message, output_format)
-                    console.print(formatted)
+                    _print(formatted)
 
             # Show metrics if requested
             if show_metrics:
@@ -117,12 +125,12 @@ class CodexCLI:
                     provider=Provider.CODEX,
                     model=model,
                 )
-                console.print("\n" + format_metrics(metrics))
+                _print("\n" + format_metrics(metrics))
 
         except Exception as e:
-            console.print(f"[red]Error: {e}[/red]")
+            _print_error(str(e))
             if self.config.verbose:
-                console.print_exception()
+                logger.exception("Full error details")
             sys.exit(1)
 
     async def _query_async(self, prompt: str, options: CodexOptions) -> list:
@@ -143,22 +151,22 @@ class CodexCLI:
                     if i % 2 == 0:
                         # Regular text
                         if part.strip():
-                            console.print(part.strip())
+                            _print(part.strip())
                     else:
                         # Code block
                         lines = part.strip().split("\n", 1)
                         language = lines[0] if lines else ""
                         code = lines[1] if len(lines) > 1 else part
 
-                        from rich.syntax import Syntax
-
-                        syntax = Syntax(code, language or "text", theme="monokai")
-                        console.print(syntax)
+                        # Simple code display without syntax highlighting
+                        if language:
+                            _print(f"[{language}]")
+                        _print(code)
             else:
-                console.print(content)
+                _print(content)
         else:
             # Handle structured content
-            console.print(format_response(message))
+            _print(format_response(message))
 
     def stream(
         self,
@@ -191,32 +199,27 @@ class CodexCLI:
         try:
             asyncio.run(self._stream_async(prompt, options))
         except KeyboardInterrupt:
-            console.print("\n[yellow]Stream interrupted[/yellow]")
+            _print_warning("Stream interrupted")
         except Exception as e:
-            console.print(f"[red]Error: {e}[/red]")
+            _print_error(str(e))
             if self.config.verbose:
-                console.print_exception()
+                logger.exception("Full error details")
             sys.exit(1)
 
     async def _stream_async(self, prompt: str, options: CodexOptions) -> None:
         """Stream responses with live display."""
-        content_buffer = []
-
-        with Live(console=console, refresh_per_second=10) as live:
-            async for message in query(prompt, options):
-                # Update live display
-                if isinstance(message.content, str):
-                    content_buffer.append(message.content)
-                elif isinstance(message.content, list):
-                    for block in message.content:
-                        if hasattr(block, "text"):
-                            content_buffer.append(block.text)
-
-                live.update("".join(content_buffer))
+        async for message in query(prompt, options):
+            # Print content for streaming display
+            if isinstance(message.content, str):
+                pass
+            elif isinstance(message.content, list):
+                for block in message.content:
+                    if hasattr(block, "text"):
+                        pass
 
     def models(self) -> None:
         """List available Codex models."""
-        console.print("[bold]Available Codex Models:[/bold]")
+        _print("Available Codex Models:")
 
         models = [
             ("o4-mini", "Optimized for speed and efficiency (default)"),
@@ -225,37 +228,25 @@ class CodexCLI:
             ("o3.5", "Previous generation, stable"),
         ]
 
-        table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Model", style="green")
-        table.add_column("Description")
-
         for model, desc in models:
-            table.add_row(model, desc)
-
-        console.print(table)
+            _print(f"  • {model}: {desc}")
 
     def health(self) -> None:
         """Check Codex service health."""
         try:
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                transient=True,
-            ) as progress:
-                task = progress.add_task("Checking Codex health...", total=None)
+            _print("Checking Codex health...")
 
-                # Simple health check
-                result = asyncio.run(self._health_check())
-                progress.update(task, completed=True)
+            # Simple health check
+            result = asyncio.run(self._health_check())
 
             if result:
-                console.print("[green]✓ Codex service is healthy[/green]")
+                _print_success("Codex service is healthy")
             else:
-                console.print("[red]✗ Codex service is not responding[/red]")
+                _print_error("Codex service is not responding")
                 sys.exit(1)
 
         except Exception as e:
-            console.print(f"[red]Health check failed: {e}[/red]")
+            _print_error(f"Health check failed: {e}")
             sys.exit(1)
 
     async def _health_check(self) -> bool:
@@ -285,37 +276,37 @@ class CodexCLI:
             **kwargs: Configuration values for 'set' action
         """
         if action == "show":
-            console.print("[bold]Codex Configuration:[/bold]")
+            _print("Codex Configuration:")
             codex_config = self.config.providers.get(Provider.CODEX, {})
 
             if isinstance(codex_config, dict):
                 for key, value in codex_config.items():
-                    console.print(f"  {key}: {value}")
+                    _print(f"  {key}: {value}")
             else:
-                console.print(f"  enabled: {codex_config.enabled}")
-                console.print(f"  model: {codex_config.model}")
-                console.print(f"  timeout: {codex_config.timeout}")
+                _print(f"  enabled: {codex_config.enabled}")
+                _print(f"  model: {codex_config.model}")
+                _print(f"  timeout: {codex_config.timeout}")
 
             # Show environment variables
-            console.print("\n[bold]Environment:[/bold]")
-            console.print(f"  CODEX_CLI_PATH: {os.environ.get('CODEX_CLI_PATH', 'Not set')}")
+            _print("\nEnvironment:")
+            codex_path = os.environ.get("CODEX_CLI_PATH", "Not set")
+            _print(f"  CODEX_CLI_PATH: {codex_path}")
 
         elif action == "set":
             if not kwargs:
-                console.print("[red]No configuration values provided[/red]")
+                _print_error("No configuration values provided")
                 return
 
             # Update configuration
             for key, value in kwargs.items():
-                console.print(f"[green]Set {key} = {value}[/green]")
+                _print_success(f"Set {key} = {value}")
 
-            console.print(
-                "\n[yellow]Note: Configuration changes are temporary. Update config file for persistence.[/yellow]"
-            )
+            msg = "Note: Configuration changes are temporary. Update config file for persistence."
+            _print_warning(msg)
 
         else:
-            console.print(f"[red]Unknown action: {action}[/red]")
-            console.print("Available actions: show, set")
+            _print_error(f"Unknown action: {action}")
+            _print("Available actions: show, set")
 
     def _process_images(self, images: str) -> list[str]:
         """Process comma-separated image paths or URLs.
@@ -337,14 +328,15 @@ class CodexCLI:
             if img.startswith(("http://", "https://")):
                 # Download URL to temp file
                 try:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=Path(img).suffix or ".jpg") as tmp_file:
+                    suffix = Path(img).suffix or ".jpg"
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
                         logger.debug(f"Downloading image from {img}")
                         with urllib.request.urlopen(img) as response:
                             tmp_file.write(response.read())
                         processed_paths.append(tmp_file.name)
                         logger.debug(f"Downloaded to {tmp_file.name}")
                 except Exception as e:
-                    console.print(f"[red]Failed to download image {img}: {e}[/red]")
+                    _print_error(f"Failed to download image {img}: {e}")
                     continue
             else:
                 # Local file path
@@ -352,14 +344,14 @@ class CodexCLI:
                 if path.exists():
                     processed_paths.append(str(path))
                 else:
-                    console.print(f"[red]Image file not found: {img}[/red]")
+                    _print_error(f"Image file not found: {img}")
                     continue
 
         return processed_paths
 
     def modes(self) -> None:
         """Show available action modes."""
-        console.print("[bold]Codex Action Modes:[/bold]")
+        _print("Codex Action Modes:")
 
         modes = [
             ("review", "Review each action before execution (default)"),
@@ -367,15 +359,10 @@ class CodexCLI:
             ("full-auto", "Fully automatic execution (use with caution)"),
         ]
 
-        table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Mode", style="green")
-        table.add_column("Description")
-
         for mode, desc in modes:
-            table.add_row(mode, desc)
+            _print(f"  • {mode}: {desc}")
 
-        console.print(table)
-        console.print("\n[yellow]Tip: Use --action-mode <mode> to set the mode[/yellow]")
+        _print("\nTip: Use --action-mode <mode> to set the mode")
 
     def benchmark(
         self,
@@ -390,39 +377,37 @@ class CodexCLI:
             iterations: Number of iterations
             model: Model to benchmark
         """
-        console.print("[bold]Benchmarking Codex[/bold]")
-        console.print(f"Prompt: {prompt}")
-        console.print(f"Iterations: {iterations}")
-        console.print(f"Model: {model}\n")
+        _print("Benchmarking Codex")
+        _print(f"Prompt: {prompt}")
+        _print(f"Iterations: {iterations}")
+        _print(f"Model: {model}")
+        _print("")
 
         times = []
         options = CodexOptions(model=model, timeout=30)
 
-        with Progress() as progress:
-            task = progress.add_task("Running benchmark...", total=iterations)
-
-            for i in range(iterations):
-                start = time.time()
-                try:
-                    asyncio.run(self._benchmark_iteration(prompt, options))
-                    duration = time.time() - start
-                    times.append(duration)
-                except Exception as e:
-                    console.print(f"[red]Iteration {i + 1} failed: {e}[/red]")
-
-                progress.update(task, advance=1)
+        for i in range(iterations):
+            _print(f"Running iteration {i + 1}/{iterations}...")
+            start = time.time()
+            try:
+                asyncio.run(self._benchmark_iteration(prompt, options))
+                duration = time.time() - start
+                times.append(duration)
+                _print(f"  Completed in {duration:.3f}s")
+            except Exception as e:
+                _print_error(f"Iteration {i + 1} failed: {e}")
 
         if times:
             avg_time = sum(times) / len(times)
             min_time = min(times)
             max_time = max(times)
 
-            console.print("\n[bold]Results:[/bold]")
-            console.print(f"Average: {avg_time:.3f}s")
-            console.print(f"Min: {min_time:.3f}s")
-            console.print(f"Max: {max_time:.3f}s")
+            _print("\nResults:")
+            _print(f"Average: {avg_time:.3f}s")
+            _print(f"Min: {min_time:.3f}s")
+            _print(f"Max: {max_time:.3f}s")
         else:
-            console.print("[red]No successful iterations[/red]")
+            _print_error("No successful iterations")
 
     async def _benchmark_iteration(self, prompt: str, options: CodexOptions) -> None:
         """Run a single benchmark iteration."""
@@ -444,65 +429,72 @@ class CodexCLI:
         """
         from claif_cod.install import install_codex
 
-        console.print("[bold]Installing Codex provider...[/bold]")
+        _print("Installing Codex provider...")
         result = install_codex()
 
         if result["installed"]:
-            console.print("[green]✅ Codex provider installed successfully![/green]")
-            console.print("[green]You can now use the 'codex' command from anywhere[/green]")
+            _print_success("Codex provider installed successfully!")
+            _print_success("You can now use the 'codex' command from anywhere")
         else:
-            console.print(f"[red]❌ Failed to install Codex provider: {result.get('message', 'Unknown error')}[/red]")
+            error_msg = result.get("message", "Unknown error")
+            _print_error(f"Failed to install Codex provider: {error_msg}")
             if result.get("failed"):
-                console.print(f"[red]Failed components: {', '.join(result['failed'])}[/red]")
+                failed_str = ", ".join(result["failed"])
+                _print_error(f"Failed components: {failed_str}")
             sys.exit(1)
 
     def uninstall(self) -> None:
         """Uninstall Codex provider (remove bundled executable).
 
-        This will remove the bundled Codex executable from the install directory.
+        This will remove the bundled Codex executable from the install
+        directory.
         """
         from claif_cod.install import uninstall_codex
 
-        console.print("[bold]Uninstalling Codex provider...[/bold]")
+        _print("Uninstalling Codex provider...")
         result = uninstall_codex()
 
         if result["uninstalled"]:
-            console.print("[green]✅ Codex provider uninstalled successfully![/green]")
+            _print_success("Codex provider uninstalled successfully!")
         else:
-            console.print(f"[red]❌ Failed to uninstall Codex provider: {result.get('message', 'Unknown error')}[/red]")
+            error_msg = result.get("message", "Unknown error")
+            _print_error(f"Failed to uninstall Codex provider: {error_msg}")
             if result.get("failed"):
-                console.print(f"[red]Failed components: {', '.join(result['failed'])}[/red]")
+                failed_str = ", ".join(result["failed"])
+                _print_error(f"Failed components: {failed_str}")
             sys.exit(1)
 
     def status(self) -> None:
         """Show Codex provider installation status."""
         from claif.common.install import find_executable, get_install_dir
 
-        console.print("[bold]Codex Provider Status[/bold]\n")
+        _print("Codex Provider Status")
+        _print("")
 
         # Check bundled executable
         install_dir = get_install_dir()
         bundled_path = install_dir / "codex"
 
         if bundled_path.exists():
-            console.print(f"[green]✓ Bundled executable: {bundled_path}[/green]")
+            _print_success(f"Bundled executable: {bundled_path}")
         else:
-            console.print(f"[yellow]○ Bundled executable: Not installed[/yellow]")
+            _print_warning("Bundled executable: Not installed")
 
         # Check external executable
         try:
             external_path = find_executable("codex")
-            console.print(f"[green]✓ Found executable: {external_path}[/green]")
+            _print_success(f"Found executable: {external_path}")
         except Exception:
-            console.print("[red]✗ No external codex executable found[/red]")
+            _print_error("No external codex executable found")
 
         # Show install directory in PATH status
         path_env = os.environ.get("PATH", "")
         if str(install_dir) in path_env:
-            console.print(f"[green]✓ Install directory in PATH[/green]")
+            _print_success("Install directory in PATH")
         else:
-            console.print(f"[yellow]⚠ Install directory not in PATH: {install_dir}[/yellow]")
-            console.print('[yellow]  Add to PATH with: export PATH="$HOME/.local/bin:$PATH"[/yellow]')
+            _print_warning(f"Install directory not in PATH: {install_dir}")
+            path_cmd = 'export PATH="$HOME/.local/bin:$PATH"'
+            _print(f"  Add to PATH with: {path_cmd}")
 
 
 def main():

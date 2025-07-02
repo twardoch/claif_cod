@@ -1,103 +1,101 @@
-# CLAIF_COD Development Plan - Minimal Viable Product
+# claif_cod Development Plan - Production OpenAI Codex Integration
 
-## Current Status
+## Project Vision
 
-CLAIF_COD is a complete async subprocess wrapper for a hypothetical "Codex CLI" tool. The architecture is solid and correctly implements the CLAIF provider interface.
+`claif_cod` provides production-ready integration with OpenAI's Codex CLI tool within theClaif framework. It uses the official @openai/codex npm package to deliver real AI-powered coding assistance with auto-install capabilities and streamlined dependencies.
 
-**Note**: This serves as a reference implementation and template for wrapping CLI-based AI tools into the CLAIF framework.
-
-## MVP Strategy - Ship What Works
+## MVP Strategy
 
 ### Core Value Proposition
+- **Production Integration**: Real OpenAI Codex CLI functionality
+- **Auto-Install Support**: Handles missing dependencies gracefully (Issue #201)
+- **Real AI Coding**: Genuine code generation and assistance capabilities
+- **Minimal Dependencies**: Uses loguru instead of rich for simplicity
 
-CLAIF_COD demonstrates how to:
-1. Wrap any CLI tool with async subprocess management
-2. Convert between tool-specific and CLAIF message formats
-3. Provide both CLI and Python API interfaces
-4. Handle errors, timeouts, and platform differences
+### Architecture Overview
 
-### What We Have (Keep As-Is)
+```
+claif_cod/
+├── transport.py   # Async subprocess management
+├── client.py      #Claif provider interface
+├── cli.py         # Fire-based CLI (loguru only)
+├── types.py       # Type definitions
+└── install.py     # Auto-install functionality
+```
 
-- ✅ Complete async transport layer with anyio
-- ✅ Fire-based CLI with rich output
-- ✅ Message format conversion
-- ✅ Comprehensive type system
-- ✅ Error handling and logging
-- ✅ Platform-aware CLI discovery
+## Implementation Plan
 
-### What We Need (Minimal Additions)
+### Phase 1: Dependency Cleanup
+- [ ] Remove all rich imports and usage
+- [ ] Replace rich.console with loguru logging  
+- [ ] Simplify progress indicators and tables
+- [ ] Use plain text output with clear formatting
 
-1. **Basic Mock CLI** (for testing/demo)
-   - Simple Python script that echoes JSON
-   - Just enough to show the wrapper works
-   - Document as example, not production
+### Phase 2: Auto-Install Integration
+- [ ] Implement CLI detection logic in transport.py
+- [ ] Add auto-install prompts when CLI missing
+- [ ] Integrate with bun bundling system
+- [ ] Provide clear installation guidance
 
-2. **Essential Tests**
-   - Transport layer subprocess handling
-   - Message parsing edge cases
-   - CLI command verification
+### Phase 3: Real CLI Testing
+- [ ] Test real @openai/codex CLI integration
+- [ ] Add basic transport layer tests
+- [ ] Test message parsing and error handling
+- [ ] Verify cross-platform compatibility
 
-3. **Clear Documentation**
-   - State this is a reference implementation
-   - Show how to adapt for real CLIs
-   - Include architecture diagrams
+### Phase 4: Documentation & Release
+- [ ] Update README to document real Codex usage
+- [ ] Document OPENAI_API_KEY configuration
+- [ ] Create real usage examples
+- [ ] Publish to PyPI
 
-## Scope for v1.x
+## Technical Decisions
 
-### Already Complete
-- ✅ CLAIF provider interface
-- ✅ Async subprocess wrapper
-- ✅ Fire CLI with rich output
-- ✅ Message conversion logic
-- ✅ Type-safe dataclasses
-- ✅ Error handling framework
-- ✅ Platform compatibility
+### Simplified Output
+- **Before**: Rich tables, progress bars, syntax highlighting
+- **After**: Clean loguru-based logging with structured output
+- **Benefit**: Fewer dependencies, easier maintenance
 
-### Minimal Additions for v1.0
-- 🔲 Mock CLI script (50 lines)
-- 🔲 Basic transport tests
-- 🔲 README clarifications
+### Auto-Install Strategy
+- Detect missing CLI tools gracefully
+- Provide actionable error messages
+- Support both npm and bun installation paths
+- Fall back to manual installation instructions
 
-### Intentionally Deferred
-- ❌ Configuration file support (works via env vars)
-- ❌ Session management (stateless is fine)
-- ❌ Response caching (not needed for v1)
-- ❌ Advanced features (keep it simple)
+### Real Codex CLI Integration
+- Uses official @openai/codex npm package
+- JSON response format from real OpenAI API
+- Supports actual Codex commands and capabilities
+- Requires OPENAI_API_KEY for authentication
 
-## Architecture Decisions
+## Success Criteria
 
-1. **No Changes Needed**
-   - Current architecture is production-ready
-   - All patterns are correctly implemented
-   - Code is clean and well-structured
+1. **Usability**: Works with `uvx claif_cod` out of box
+2. **Functionality**: Real OpenAI Codex integration works
+3. **Configuration**: Clear OPENAI_API_KEY setup process
+4. **Reliability**: Handles missing dependencies gracefully
+5. **Simplicity**: Minimal codebase, easy to understand
 
-2. **Minimal Testing**
-   - Focus on transport layer reliability
-   - Test message parsing edge cases
-   - Skip complex integration tests for v1.0
+## Non-Goals
 
-3. **Simple Configuration**
-   - Environment variables work fine
-   - No need for config files yet
-   - Document the env vars clearly
+- Complex features (caching, sessions, etc.)
+- Extensive configuration options
+- Performance optimization beyond basic needs
 
-## Release Criteria for v1.0
+## Configuration Guide
 
-1. Mock CLI script works
-2. Basic tests pass
-3. README accurately describes the project
-4. Package installs cleanly
-5. All existing features work
+For developers using claif_cod with OpenAI Codex:
 
-## Post v1.0 Considerations
+1. **API Key Setup**: Set OPENAI_API_KEY environment variable
+2. **Installation**: Run `claif_cod install` for auto-setup
+3. **Usage**: Use standard CLAIF patterns for querying
+4. **Error Handling**: Auto-install handles missing CLI dependencies
+5. **Authentication**: Codex CLI handles OpenAI API authentication
 
-- If real CLI tools emerge, adapt the transport layer
-- Add features only when there's clear demand
-- Keep the codebase simple and maintainable
-- Focus on being a good template/reference
+## Release Strategy
 
-## Philosophy
+- **v1.0**: Production Codex integration with auto-install
+- **v1.1**: Enhanced CLI options and error handling
+- **v2.0**: Advanced features based on user feedback
 
-"Ship a working reference implementation that others can learn from and adapt."
-
-The code is already good. Don't over-engineer. Make it clear what this is (a template) and what it isn't (a production Codex integration). Let users adapt it for their needs.
+This approach delivers immediate value with real OpenAI Codex functionality through a clean, unified interface.

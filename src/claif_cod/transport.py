@@ -1,4 +1,4 @@
-"""Transport layer for CLAIF Codex CLI communication."""
+"""Transport layer forClaif Codex CLI communication."""
 
 import json
 import os
@@ -9,7 +9,7 @@ from pathlib import Path
 from claif.common import InstallError, TransportError, find_executable
 from loguru import logger
 
-from .types import CodexOptions, CodexResponse
+from claif_cod.types import CodexOptions, CodexResponse
 
 
 class CodexTransport:
@@ -26,11 +26,9 @@ class CodexTransport:
 
     async def connect(self) -> None:
         """Initialize transport (no-op for subprocess)."""
-        pass
 
     async def disconnect(self) -> None:
         """Cleanup transport (no-op for subprocess)."""
-        pass
 
     async def send_query(self, prompt: str, options: CodexOptions):
         """Send query to Codex CLI (async wrapper around execute).
@@ -42,10 +40,8 @@ class CodexTransport:
         response = self.execute(prompt, options)
 
         # Convert to the message format expected by the client
-        from .types import CodexMessage, ResultMessage
-
         # Yield the response as a CodexMessage
-        from .types import TextBlock
+        from claif_cod.types import CodexMessage, ResultMessage, TextBlock
 
         yield CodexMessage(
             role=response.role,
@@ -82,6 +78,7 @@ class CodexTransport:
         try:
             result = subprocess.run(
                 command,
+                check=False,
                 capture_output=True,
                 text=True,
                 env=env,

@@ -1,10 +1,10 @@
-# CLAIF_COD - Development Guide for AI Agents
+#`claif_cod` - Development Guide for AI Agents
 
-This document provides guidance for AI agents working on the CLAIF_COD codebase. It explains the project structure, development principles, and implementation details.
+This document provides guidance for AI agents working on the`claif_cod` codebase. It explains the project structure, development principles, and implementation details.
 
 ## Project Overview
 
-**CLAIF_COD** is a provider package for the CLAIF framework that wraps OpenAI's Codex CLI tool. It enables AI-powered code generation and manipulation through async subprocess management.
+**CLAIF_COD** is a provider package for theClaif framework that wraps OpenAI's Codex CLI tool. It enables AI-powered code generation and manipulation through async subprocess management.
 
 ### Key Components
 
@@ -16,7 +16,7 @@ This document provides guidance for AI agents working on the CLAIF_COD codebase.
 
 2. **Client Layer** (`client.py`)
    - Orchestrates transport lifecycle
-   - Converts between Codex and CLAIF message formats
+   - Converts between Codex andClaif message formats
    - Manages connection state
 
 3. **CLI Interface** (`cli.py`)
@@ -97,7 +97,7 @@ The `CodexTransport` class in `transport.py` handles all subprocess communicatio
 4. **CLI Not Found**: Clear error message with installation hint
 5. **Result Errors**: Propagated from Codex CLI response
 
-## Development Principles for CLAIF_COD
+## Development Principles for`claif_cod`
 
 ### Code Style Guidelines
 
@@ -202,7 +202,7 @@ def new_command(self, arg1: str, arg2: int = 10) -> None:
 - [x] Async subprocess management with anyio
 - [x] JSON streaming message parser
 - [x] Fire-based CLI with rich output
-- [x] Message format conversion (Codex → CLAIF)
+- [x] Message format conversion (Codex →Claif)
 - [x] Platform-aware CLI path discovery
 - [x] Timeout handling with process cleanup
 - [x] Error propagation and logging
@@ -223,7 +223,7 @@ def new_command(self, arg1: str, arg2: int = 10) -> None:
 - [ ] Performance benchmarks
 - [ ] API documentation generation
 
-## Testing Strategy for CLAIF_COD
+## Testing Strategy for`claif_cod`
 
 ### Unit Test Structure
 
@@ -281,7 +281,7 @@ class MockCodexCLI:
 ### Short Term (v1.x)
 
 1. **Complete test coverage** (target: >80%)
-2. **Configuration file support** via CLAIF config system
+2. **Configuration file support** viaClaif config system
 3. **Better error messages** with actionable hints
 4. **Mock CLI for testing** without real Codex binary
 5. **Documentation site** with API reference
@@ -314,4 +314,4 @@ class MockCodexCLI:
 
 For questions about this codebase:
 - GitHub Issues: https://github.com/twardoch/claif_cod/issues
-- CLAIF Framework: https://github.com/twardoch/claif
+-Claif Framework: https://github.com/twardoch/claif
