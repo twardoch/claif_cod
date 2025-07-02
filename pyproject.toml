@@ -48,6 +48,7 @@ dependencies = [
     "fire>=0.7.0",
     "rich>=13.0.0",
     "loguru>=0.7.0",
+    "tenacity>=9.0.0",
 ]
 
 # Author information
@@ -105,6 +106,7 @@ all = [
     "fire>=0.7.0",
     "rich>=13.0.0",
     "loguru>=0.7.0",
+    "tenacity>=9.0.0",
     # Dev dependencies
     'pre-commit>=4.1.0',
     'ruff>=0.9.7',
