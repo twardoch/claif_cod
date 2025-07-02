@@ -53,6 +53,9 @@ class CodexOptions:
     verbose: bool = False
     exec_path: str | None = None
     images: list[str] | None = None
+    retry_count: int = 3
+    retry_delay: float = 1.0
+    no_retry: bool = False
 
     def __post_init__(self):
         # Handle cwd alias

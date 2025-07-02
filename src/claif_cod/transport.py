@@ -8,6 +8,13 @@ from pathlib import Path
 
 from claif.common import InstallError, TransportError, find_executable
 from loguru import logger
+from tenacity import (
+    AsyncRetrying,
+    RetryError,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from claif_cod.types import CodexOptions, CodexResponse
 
@@ -31,28 +38,96 @@ class CodexTransport:
         """Cleanup transport (no-op for subprocess)."""
 
     async def send_query(self, prompt: str, options: CodexOptions):
-        """Send query to Codex CLI (async wrapper around execute).
+        """Send query to Codex CLI with retry logic.
 
         This is an async wrapper around the synchronous execute method
-        to match the interface expected by other transports.
+        with added retry functionality for transient errors.
         """
-        # Use the existing execute method
-        response = self.execute(prompt, options)
-
-        # Convert to the message format expected by the client
-        # Yield the response as a CodexMessage
         from claif_cod.types import CodexMessage, ResultMessage, TextBlock
-
-        yield CodexMessage(
-            role=response.role,
-            content=[TextBlock(text=response.content)],
+        
+        # Get retry settings from options or use defaults
+        retry_count = getattr(options, "retry_count", 3)
+        retry_delay = getattr(options, "retry_delay", 1.0)
+        no_retry = getattr(options, "no_retry", False)
+        
+        # If retry is disabled, execute once without retry
+        if no_retry or retry_count <= 0:
+            try:
+                response = self.execute(prompt, options)
+                yield CodexMessage(
+                    role=response.role,
+                    content=[TextBlock(text=response.content)],
+                )
+                yield ResultMessage(
+                    duration=0.0,
+                    session_id="codex",
+                )
+            except Exception as e:
+                yield ResultMessage(
+                    error=True,
+                    message=str(e),
+                    session_id="codex",
+                )
+            return
+        
+        # Define retry exceptions
+        retry_exceptions = (
+            subprocess.TimeoutExpired,
+            TransportError,
+            ConnectionError,
+            TimeoutError,
         )
-
-        # Yield a result message
-        yield ResultMessage(
-            duration=0.0,  # We don't track duration in sync execute
-            session_id="codex",
-        )
+        
+        try:
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(retry_count + 1),
+                wait=wait_exponential(multiplier=retry_delay, min=retry_delay, max=retry_delay * 10),
+                retry=retry_if_exception_type(retry_exceptions),
+                reraise=False,
+            ):
+                with attempt:
+                    logger.debug(f"Codex query attempt {attempt.retry_state.attempt_number}/{retry_count}")
+                    
+                    # Check if the error is retryable
+                    try:
+                        response = self.execute(prompt, options)
+                    except TransportError as e:
+                        error_msg = str(e).lower()
+                        retryable_indicators = [
+                            "timeout", "connection", "network", "quota", "exhausted",
+                            "rate limit", "too many requests", "503", "502", "429"
+                        ]
+                        if any(indicator in error_msg for indicator in retryable_indicators):
+                            logger.warning(f"Retryable error: {e}")
+                            raise
+                        else:
+                            # Non-retryable error
+                            yield ResultMessage(
+                                error=True,
+                                message=str(e),
+                                session_id="codex",
+                            )
+                            return
+                    
+                    # Success - yield messages
+                    yield CodexMessage(
+                        role=response.role,
+                        content=[TextBlock(text=response.content)],
+                    )
+                    yield ResultMessage(
+                        duration=0.0,
+                        session_id="codex",
+                    )
+                    return
+                    
+        except RetryError as e:
+            last_error = e.__cause__ or e
+            logger.error(f"All retry attempts failed for Codex query: {last_error}")
+            yield ResultMessage(
+                error=True,
+                message=f"Codex query failed after {retry_count} retries: {last_error!s}",
+                session_id="codex",
+            )
 
     def execute(self, prompt: str, options: CodexOptions) -> CodexResponse:
         """Execute a Codex command.
