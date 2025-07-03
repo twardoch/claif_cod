@@ -5,10 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2025-07-03] - v1.0 CRITICAL ISSUES RESOLUTION & FINAL VERIFICATION ✅
+## [1.0.8] - 2025-01-03
 
 ### Summary
-All critical blocking issues for v1.0 release have been resolved. The Codex provider is stable, with robust subprocess management, comprehensive test coverage, and proper error handling.
+✅ **v1.0 Release Ready** - All critical blocking issues resolved. The Codex provider is stable with robust subprocess management, comprehensive test coverage, and proper error handling.
 
 ### Fixed
 - **Smart Retry Logic**: Fixed issue where transient errors would fail immediately. Ensured non-retryable errors fail fast without unnecessary retries.
