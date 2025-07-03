@@ -9,7 +9,7 @@ encapsulating response and result metadata.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from claif.common import Message, MessageRole
 from claif.common import TextBlock as ClaifTextBlock  # Alias to avoid name collision

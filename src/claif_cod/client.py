@@ -18,6 +18,10 @@ from claif_cod.types import CodexMessage, CodexOptions, ResultMessage
 
 def _is_cli_missing_error(error: Exception) -> bool:
     """Check if error indicates missing CLI tool."""
+    # Check exception type first
+    if isinstance(error, FileNotFoundError):
+        return True
+        
     error_str = str(error).lower()
     error_indicators = [
         "command not found",
@@ -28,7 +32,6 @@ def _is_cli_missing_error(error: Exception) -> bool:
         "executable not found",
         "codex not found",
         "permission denied",
-        "filenotfounderror",
     ]
     return any(indicator in error_str for indicator in error_indicators)
 

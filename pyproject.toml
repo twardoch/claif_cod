@@ -382,6 +382,7 @@ disallow_incomplete_defs = false
 addopts = "-v --durations=10 -p no:briefcase"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+pytestmark = "pytest.mark.anyio"
 console_output_style = "progress"
 filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
 log_cli = true

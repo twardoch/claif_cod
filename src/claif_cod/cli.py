@@ -26,34 +26,9 @@ from claif_cod.client import query
 from claif_cod.types import CodeBlock, CodexOptions, ErrorBlock, TextBlock
 
 
-from rich.console import Console
-from rich.theme import Theme
-
-# Define a custom theme for consistent output styling
-cli_theme = Theme({
-    "info": "dim cyan",
-    "warning": "magenta",
-    "danger": "bold red",
-    "success": "bold green",
-    "debug": "dim white"
-})
-console = Console(theme=cli_theme)
-
-def _print(message: str) -> None:
-    """Prints a general message to the console."""
-    console.print(message)
-
-def _print_error(message: str) -> None:
-    """Prints an error message to the console in red."""
-    console.print(f"[danger]Error:[/danger] {message}")
-
-def _print_success(message: str) -> None:
-    """Prints a success message to the console in green."""
-    console.print(f"[success]Success:[/success] {message}")
-
-def _print_warning(message: str) -> None:
-    """Prints a warning message to the console in yellow/magenta."""
-    console.print(f"[warning]Warning:[/warning] {message}")
+from claif.common.utils import (
+    _print, _print_error, _print_success, _print_warning, _confirm, _prompt
+)
 
 
 class CodexCLI:
