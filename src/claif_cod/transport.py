@@ -12,10 +12,12 @@ output parsing, and retry mechanisms.
 import json
 import os
 import shlex
+import signal
 import subprocess
+import time
 import asyncio
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional, Union
+from typing import Any, AsyncIterator, Dict, List, Optional, Union, Tuple, Type
 
 from claif.common import InstallError, TransportError, find_executable
 from loguru import logger
@@ -64,12 +66,33 @@ class CodexTransport:
         Cleans up the transport by terminating any running Codex CLI subprocess.
 
         Ensures that the process is properly terminated and its resources are released.
-        Logs a debug message if an error occurs during termination.
+        Handles process groups on Unix systems to prevent zombie processes.
         """
         if self.process:
             try:
-                self.process.terminate()
-                await self.process.wait()
+                # Try graceful termination first
+                if self.process.returncode is None:
+                    self.process.terminate()
+                    
+                    # Wait for graceful termination with timeout
+                    try:
+                        await asyncio.wait_for(self.process.wait(), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        # Force kill if graceful termination failed
+                        logger.debug("Process didn't terminate gracefully, forcing kill")
+                        if os.name != 'nt':
+                            # Kill entire process group on Unix
+                            try:
+                                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass  # Process already dead
+                        else:
+                            # Just kill the process on Windows
+                            self.process.kill()
+                        
+                        # Wait for forced termination
+                        await self.process.wait()
+                
                 self.process = None
             except Exception as e:
                 logger.debug(f"Error during Codex CLI process disconnect: {e}")
@@ -191,22 +214,28 @@ class CodexTransport:
             logger.debug(f"Running command: {' '.join(command)}")
             logger.debug(f"Working directory: {cwd}")
 
-        start_time: float = os.time()
+        start_time: float = time.time()
         process: Optional[asyncio.Process] = None
 
         try:
             # Create the subprocess. Using `asyncio.create_subprocess_exec` for direct
             # asynchronous subprocess management, capturing stdout and stderr.
+            # Use process group on Unix for better cleanup
+            preexec_fn = None
+            if os.name != 'nt':  # Unix-like systems
+                preexec_fn = os.setsid
+                
             process = await asyncio.create_subprocess_exec(
                 *command,
                 env=env,
                 cwd=cwd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                preexec_fn=preexec_fn,
             )
             self.process = process
 
-            # Read stdout line by line to process streaming output.
+            # Read stdout line by line to process streaming output
             while True:
                 line_bytes: Optional[bytes] = await process.stdout.readline()
                 if not line_bytes:
@@ -234,9 +263,24 @@ class CodexTransport:
                         # If a line is not valid JSON, treat it as a plain text message.
                         yield CodexMessage(role="assistant", content=[TextBlock(text=line)])
 
-            # Wait for the process to finish and get its return code.
-            returncode: int = await process.wait()
-            duration: float = os.time() - start_time
+            # Wait for the process to finish with timeout
+            timeout_seconds = options.timeout if options.timeout else 300  # Default 5 minutes
+            try:
+                returncode: int = await asyncio.wait_for(process.wait(), timeout=timeout_seconds)
+            except asyncio.TimeoutError:
+                # Force kill the process if it times out
+                logger.warning(f"Process timed out after {timeout_seconds}s, terminating")
+                if os.name != 'nt':
+                    try:
+                        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                else:
+                    process.kill()
+                await process.wait()
+                raise TransportError(f"Command timed out after {timeout_seconds}s")
+            
+            duration: float = time.time() - start_time
 
             if returncode != 0:
                 # Read any remaining stderr output for error messages.
@@ -252,20 +296,34 @@ class CodexTransport:
                 session_id="codex",  # Placeholder session_id
             )
 
-        except subprocess.TimeoutExpired as e:
-            # Handle subprocess timeout specifically.
-            if process and process.returncode is None:
-                process.kill()
-                await process.wait()
-            msg = f"Codex command timed out after {options.timeout}s"
-            raise TransportError(msg) from e
         except Exception as e:
-            # Catch any other unexpected exceptions during execution.
+            # Catch any unexpected exceptions during execution and clean up
             if process and process.returncode is None:
-                process.kill()
-                await process.wait()
-            msg = f"Failed to execute Codex command: {e}"
-            raise TransportError(msg) from e
+                logger.debug(f"Cleaning up process due to exception: {e}")
+                try:
+                    # Try graceful termination first
+                    process.terminate()
+                    try:
+                        await asyncio.wait_for(process.wait(), timeout=2.0)
+                    except asyncio.TimeoutError:
+                        # Force kill if needed
+                        if os.name != 'nt':
+                            try:
+                                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                        else:
+                            process.kill()
+                        await process.wait()
+                except Exception as cleanup_error:
+                    logger.debug(f"Error during process cleanup: {cleanup_error}")
+            
+            # Re-raise the original exception
+            if isinstance(e, TransportError):
+                raise
+            else:
+                msg = f"Failed to execute Codex command: {e}"
+                raise TransportError(msg) from e
 
     def _build_command(self, prompt: str, options: CodexOptions) -> List[str]:
         """
