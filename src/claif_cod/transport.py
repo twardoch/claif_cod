@@ -196,9 +196,7 @@ class CodexTransport:
                 session_id="codex",  # Placeholder session_id
             )
 
-    async def _execute_async(
-        self, prompt: str, options: CodexOptions
-    ) -> AsyncIterator[CodexMessage | ResultMessage]:
+    async def _execute_async(self, prompt: str, options: CodexOptions) -> AsyncIterator[CodexMessage | ResultMessage]:
         """
         Executes a Codex command asynchronously and streams its output.
 
