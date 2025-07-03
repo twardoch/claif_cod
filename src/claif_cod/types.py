@@ -91,15 +91,15 @@ class CodexOptions:
     auto_approve_everything: bool = False
     full_auto: bool = False
     action_mode: str = "review"  # "full-auto", "interactive", or "review"
-    working_dir: Optional[Union[str, Path]] = None
-    cwd: Optional[Union[str, Path]] = None  # Alias for working_dir
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
-    timeout: Optional[int] = None
+    working_dir: str | Path | None = None
+    cwd: str | Path | None = None  # Alias for working_dir
+    temperature: float | None = None
+    max_tokens: int | None = None
+    top_p: float | None = None
+    timeout: int | None = None
     verbose: bool = False
-    exec_path: Optional[str] = None
-    images: Optional[List[str]] = None
+    exec_path: str | None = None
+    images: list[str] | None = None
     retry_count: int = 3
     retry_delay: float = 1.0
     no_retry: bool = False
@@ -124,7 +124,7 @@ class CodexMessage:
     """
 
     role: str
-    content: List[ContentBlock]
+    content: list[ContentBlock]
 
     def to_claif_message(self) -> Message:
         """
@@ -136,7 +136,7 @@ class CodexMessage:
         Returns:
             A Message object compatible with the core Claif framework.
         """
-        text_parts: List[str] = []
+        text_parts: list[str] = []
         for block in self.content:
             if isinstance(block, TextBlock):
                 text_parts.append(block.text)
@@ -176,9 +176,9 @@ class CodexResponse:
 
     content: str
     role: str = "assistant"
-    model: Optional[str] = None
-    usage: Optional[Dict[str, Any]] = None
-    raw_response: Optional[Dict[str, Any]] = None
+    model: str | None = None
+    usage: dict[str, Any] | None = None
+    raw_response: dict[str, Any] | None = None
 
     def to_claif_message(self) -> Message:
         """
@@ -211,9 +211,9 @@ class ResultMessage:
     """
 
     type: str = "result"
-    duration: Optional[float] = None
+    duration: float | None = None
     error: bool = False
-    message: Optional[str] = None
-    session_id: Optional[str] = None
-    model: Optional[str] = None
-    token_count: Optional[int] = None
+    message: str | None = None
+    session_id: str | None = None
+    model: str | None = None
+    token_count: int | None = None

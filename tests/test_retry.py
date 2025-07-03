@@ -38,7 +38,8 @@ async def test_retry_on_provider_error():
                     messages.append(message)
 
                 assert len(messages) == 1
-                assert len(messages[0].content) == 1 and messages[0].content[0].text == "Success after retries"
+                assert len(messages[0].content) == 1
+                assert messages[0].content[0].text == "Success after retries"
                 assert call_count == 3
 
 
@@ -108,7 +109,8 @@ async def test_codex_options_compatibility():
                     messages.append(message)
 
                 assert len(messages) == 1
-                assert len(messages[0].content) == 1 and messages[0].content[0].text == "Response with CodexOptions"
+                assert len(messages[0].content) == 1
+                assert messages[0].content[0].text == "Response with CodexOptions"
 
 
 @pytest.mark.asyncio
@@ -141,5 +143,6 @@ async def test_module_level_query_with_retry():
             messages.append(message)
 
         assert len(messages) == 1
-        assert len(messages[0].content) == 1 and messages[0].content[0].text == "Success on second attempt"
+        assert len(messages[0].content) == 1
+        assert messages[0].content[0].text == "Success on second attempt"
         assert call_count == 2

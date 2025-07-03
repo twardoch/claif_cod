@@ -21,7 +21,7 @@ def _is_cli_missing_error(error: Exception) -> bool:
     # Check exception type first
     if isinstance(error, FileNotFoundError):
         return True
-        
+
     error_str = str(error).lower()
     error_indicators = [
         "command not found",

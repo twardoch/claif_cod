@@ -28,7 +28,8 @@ class TestContentBlocks:
         block = CodeBlock(language="python", content="print('hello')")
         assert block.type == "code"
         assert block.language == "python"
-        assert len(block.content) == 1 and block.content[0].text == "print('hello')"
+        assert len(block.content) == 1
+        assert block.content[0].text == "print('hello')"
 
     def test_error_block(self):
         """Test ErrorBlock creation."""
@@ -75,9 +76,9 @@ class TestCodexOptions:
             images=["/img1.png", "/img2.jpg"],
             retry_count=5,
             retry_delay=2.0,
-            no_retry=True
+            no_retry=True,
         )
-        
+
         assert options.model == "o4"
         assert options.auto_approve_everything is True
         assert options.full_auto is True
@@ -115,10 +116,7 @@ class TestCodexMessage:
 
     def test_message_creation(self):
         """Test basic message creation."""
-        msg = CodexMessage(
-            role="assistant",
-            content=[TextBlock(text="Hello")]
-        )
+        msg = CodexMessage(role="assistant", content=[TextBlock(text="Hello")])
         assert msg.role == "assistant"
         assert len(msg.content) == 1
         assert msg.content[0].text == "Hello"
@@ -126,18 +124,14 @@ class TestCodexMessage:
     def test_to_claif_message_text_only(self):
         """Test conversion to Claif message with text blocks."""
         msg = CodexMessage(
-            role="assistant",
-            content=[
-                TextBlock(text="Part 1"),
-                TextBlock(text="Part 2"),
-                TextBlock(text="Part 3")
-            ]
+            role="assistant", content=[TextBlock(text="Part 1"), TextBlock(text="Part 2"), TextBlock(text="Part 3")]
         )
-        
+
         claif_msg = msg.to_claif_message()
         assert isinstance(claif_msg, Message)
         assert claif_msg.role == MessageRole.ASSISTANT
-        assert len(claif_msg.content) == 1 and claif_msg.content[0].text == "Part 1\nPart 2\nPart 3"
+        assert len(claif_msg.content) == 1
+        assert claif_msg.content[0].text == "Part 1\nPart 2\nPart 3"
 
     def test_to_claif_message_mixed_content(self):
         """Test conversion with mixed content types."""
@@ -147,45 +141,40 @@ class TestCodexMessage:
                 TextBlock(text="Here's the code:"),
                 CodeBlock(language="python", content="def hello():\n    print('Hi')"),
                 TextBlock(text="That's it!"),
-                ErrorBlock(error_message="Warning: deprecated")
-            ]
+                ErrorBlock(error_message="Warning: deprecated"),
+            ],
         )
-        
+
         claif_msg = msg.to_claif_message()
         expected = (
-            "Here's the code:\n"
-            "```python\n"
-            "def hello():\n"
-            "    print('Hi')\n"
-            "```\n"
-            "That's it!\n"
-            "Error: Warning: deprecated"
+            "Here's the code:\n```python\ndef hello():\n    print('Hi')\n```\nThat's it!\nError: Warning: deprecated"
         )
-        assert len(claif_msg.content) == 1 and claif_msg.content[0].text == expected
+        assert len(claif_msg.content) == 1
+        assert claif_msg.content[0].text == expected
+
     def test_to_claif_message_user_role(self):
         """Test conversion with user role."""
-        msg = CodexMessage(
-            role="user",
-            content=[TextBlock(text="User input")]
-        )
-        
+        msg = CodexMessage(role="user", content=[TextBlock(text="User input")])
+
         claif_msg = msg.to_claif_message()
         assert claif_msg.role == MessageRole.USER
-        assert len(claif_msg.content) == 1 and claif_msg.content[0].text == "User input"
+        assert len(claif_msg.content) == 1
+        assert claif_msg.content[0].text == "User input"
 
     def test_to_claif_message_empty_content(self):
         """Test conversion with empty content."""
         msg = CodexMessage(role="assistant", content=[])
         claif_msg = msg.to_claif_message()
-        assert len(claif_msg.content) == 1 and claif_msg.content[0].text == ""
+        assert len(claif_msg.content) == 1
+        assert claif_msg.content[0].text == ""
 
     def test_to_claif_message_unknown_role(self):
         """Test conversion with unknown role defaults to user."""
         msg = CodexMessage(
             role="system",  # Not assistant
-            content=[TextBlock(text="System message")]
+            content=[TextBlock(text="System message")],
         )
-        
+
         claif_msg = msg.to_claif_message()
         assert claif_msg.role == MessageRole.USER
 
@@ -200,10 +189,11 @@ class TestCodexResponse:
             role="assistant",
             model="o4-mini",
             usage={"tokens": 100},
-            raw_response={"raw": "data"}
+            raw_response={"raw": "data"},
         )
-        
-        assert len(response.content) == 1 and response.content[0].text == "Test response"
+
+        assert len(response.content) == 1
+        assert response.content[0].text == "Test response"
         assert response.role == "assistant"
         assert response.model == "o4-mini"
         assert response.usage == {"tokens": 100}
@@ -212,7 +202,8 @@ class TestCodexResponse:
     def test_response_defaults(self):
         """Test response default values."""
         response = CodexResponse(content="Hello")
-        assert len(response.content) == 1 and response.content[0].text == "Hello"
+        assert len(response.content) == 1
+        assert response.content[0].text == "Hello"
         assert response.role == "assistant"
         assert response.model is None
         assert response.usage is None
@@ -220,26 +211,22 @@ class TestCodexResponse:
 
     def test_to_claif_message_assistant(self):
         """Test conversion to Claif message with assistant role."""
-        response = CodexResponse(
-            content="Assistant response",
-            role="assistant"
-        )
-        
+        response = CodexResponse(content="Assistant response", role="assistant")
+
         claif_msg = response.to_claif_message()
         assert isinstance(claif_msg, Message)
         assert claif_msg.role == MessageRole.ASSISTANT
-        assert len(claif_msg.content) == 1 and claif_msg.content[0].text == "Assistant response"
+        assert len(claif_msg.content) == 1
+        assert claif_msg.content[0].text == "Assistant response"
 
     def test_to_claif_message_user(self):
         """Test conversion to Claif message with user role."""
-        response = CodexResponse(
-            content="User response",
-            role="user"
-        )
-        
+        response = CodexResponse(content="User response", role="user")
+
         claif_msg = response.to_claif_message()
         assert claif_msg.role == MessageRole.USER
-        assert len(claif_msg.content) == 1 and claif_msg.content[0].text == "User response"
+        assert len(claif_msg.content) == 1
+        assert claif_msg.content[0].text == "User response"
 
 
 class TestResultMessage:
@@ -258,13 +245,8 @@ class TestResultMessage:
 
     def test_result_message_success(self):
         """Test success result message."""
-        msg = ResultMessage(
-            duration=1.5,
-            session_id="test-123",
-            model="o4-mini",
-            token_count=150
-        )
-        
+        msg = ResultMessage(duration=1.5, session_id="test-123", model="o4-mini", token_count=150)
+
         assert msg.type == "result"
         assert msg.duration == 1.5
         assert msg.error is False
@@ -274,12 +256,8 @@ class TestResultMessage:
 
     def test_result_message_error(self):
         """Test error result message."""
-        msg = ResultMessage(
-            error=True,
-            message="API rate limit exceeded",
-            session_id="test-456"
-        )
-        
+        msg = ResultMessage(error=True, message="API rate limit exceeded", session_id="test-456")
+
         assert msg.type == "result"
         assert msg.error is True
         assert msg.message == "API rate limit exceeded"

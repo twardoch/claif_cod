@@ -17,6 +17,7 @@ from claif.common import (
     format_response,
     load_config,
 )
+from claif.common.utils import _confirm, _print, _print_error, _print_success, _print_warning, _prompt, process_images
 from loguru import logger
 from rich.console import Console
 from rich.syntax import Syntax
@@ -24,11 +25,6 @@ from rich.theme import Theme
 
 from claif_cod.client import query
 from claif_cod.types import CodeBlock, CodexOptions, ErrorBlock, TextBlock
-
-
-from claif.common.utils import (
-    _print, _print_error, _print_success, _print_warning, _confirm, _prompt, process_images
-)
 
 
 class CodexCLI:
@@ -97,7 +93,7 @@ class CodexCLI:
             no_retry: If True, disables all retry attempts for the query.
         """
         # Process images if provided, converting comma-separated string to a list of paths.
-        image_paths: List[str] | None = None
+        image_paths: list[str] | None = None
         if images:
             image_paths = process_images(images)
 
@@ -107,22 +103,22 @@ class CodexCLI:
             temperature=temperature,
             max_tokens=max_tokens,
             top_p=top_p,
-            working_dir=Path(working_dir) if working_dir else None, # Convert string path to Path object
+            working_dir=Path(working_dir) if working_dir else None,  # Convert string path to Path object
             action_mode=action_mode,
             auto_approve_everything=auto_approve,
             full_auto=full_auto,
             timeout=timeout,
-            verbose=self.config.verbose, # Inherit verbose setting from CLI config
+            verbose=self.config.verbose,  # Inherit verbose setting from CLI config
             images=image_paths,
             exec_path=exec,
             no_retry=no_retry,
         )
 
-        start_time: float = time.time() # Record the start time for metrics calculation.
+        start_time: float = time.time()  # Record the start time for metrics calculation.
 
         try:
             # Run the asynchronous query and collect all messages.
-            messages: List[Message] = asyncio.run(self._query_async(prompt, options))
+            messages: list[Message] = asyncio.run(self._query_async(prompt, options))
 
             # Iterate through the received messages and format/display them.
             for message in messages:
@@ -153,7 +149,7 @@ class CodexCLI:
                 logger.exception("Full error details for Codex query failure:")
             sys.exit(1)
 
-    async def _query_async(self, prompt: str, options: CodexOptions) -> List[Message]:
+    async def _query_async(self, prompt: str, options: CodexOptions) -> list[Message]:
         """
         Executes an asynchronous Codex query and collects all messages.
 
@@ -164,7 +160,7 @@ class CodexCLI:
         Returns:
             A list of Message objects received from the Codex CLI.
         """
-        messages: List[Message] = []
+        messages: list[Message] = []
         async for message in query(prompt, options):
             messages.append(message)
         return messages
@@ -176,8 +172,7 @@ class CodexCLI:
         Args:
             message: The Message object to display. Expected to contain a list of ContentBlock.
         """
-        from claif_cod.types import CodeBlock, TextBlock, ErrorBlock
-        
+
         if not isinstance(message.content, list):
             # Fallback for unexpected content type, though message.content should be List[ContentBlock]
             _print(str(message.content))
@@ -249,7 +244,6 @@ class CodexCLI:
             prompt: The prompt to send to the Codex model.
             options: Configuration options for the Codex query.
         """
-        from claif_cod.types import CodeBlock, TextBlock, ErrorBlock
 
         async for message in query(prompt, options):
             if not isinstance(message.content, list):
@@ -357,8 +351,6 @@ class CodexCLI:
         else:
             _print_error(f"Unknown action: {action}")
             _print("Available actions: show, set")
-
-    
 
     def modes(self) -> None:
         """Show available action modes."""

@@ -10,7 +10,7 @@ from claif.common import TransportError
 from tenacity import RetryError
 
 from claif_cod.transport import CodexTransport
-from claif_cod.types import CodexOptions, CodexResponse, CodexMessage, ResultMessage, TextBlock
+from claif_cod.types import CodexMessage, CodexOptions, CodexResponse, ResultMessage, TextBlock
 
 
 class TestCodexTransport:
@@ -53,7 +53,7 @@ class TestCodexTransport:
         with patch("claif_cod.transport.find_executable", return_value="codex"):
             options = CodexOptions(model="o4-mini")
             command = transport._build_command("Hello world", options)
-            
+
             assert command == ["codex", "-m", "o4-mini", "-q", "Hello world"]
 
     def test_build_command_with_all_options(self, transport):
@@ -65,21 +65,26 @@ class TestCodexTransport:
                 action_mode="full-auto",
                 auto_approve_everything=True,
                 full_auto=True,
-                images=["/img1.png", "/img2.jpg"]
+                images=["/img1.png", "/img2.jpg"],
             )
             command = transport._build_command("Test prompt", options)
-            
+
             expected = [
                 "/path/to/codex",
-                "-m", "o4",
-                "-w", "/tmp/work",
-                "-a", "full-auto",
+                "-m",
+                "o4",
+                "-w",
+                "/tmp/work",
+                "-a",
+                "full-auto",
                 "--dangerously-auto-approve-everything",
                 "--full-auto",
                 "-q",
-                "-i", "/img1.png",
-                "-i", "/img2.jpg",
-                "Test prompt"
+                "-i",
+                "/img1.png",
+                "-i",
+                "/img2.jpg",
+                "Test prompt",
             ]
             assert command == expected
 
@@ -88,7 +93,7 @@ class TestCodexTransport:
         with patch("claif_cod.transport.find_executable", return_value="codex"):
             options = CodexOptions(cwd="/home/user")
             command = transport._build_command("test", options)
-            
+
             # Should use cwd value
             assert "-w" in command
             assert "/home/user" in command
@@ -115,7 +120,7 @@ class TestCodexTransport:
         with patch("claif_cod.transport.inject_claif_bin_to_path") as mock_inject:
             mock_inject.return_value = {"PATH": "/custom/path"}
             env = transport._build_env()
-            
+
             assert env["CODEX_SDK"] == "1"
             assert env["CLAIF_PROVIDER"] == "codex"
             assert env["PATH"] == "/custom/path"
@@ -125,7 +130,7 @@ class TestCodexTransport:
         with patch("claif_cod.transport.inject_claif_bin_to_path", side_effect=ImportError):
             with patch("claif_cod.transport.os.environ.copy", return_value={"PATH": "/bin"}):
                 env = transport._build_env()
-                
+
                 assert env["CODEX_SDK"] == "1"
                 assert env["CLAIF_PROVIDER"] == "codex"
                 assert env["PATH"] == "/bin"
@@ -154,14 +159,14 @@ class TestCodexTransport:
         # Mock successful subprocess response
         mock_result = Mock()
         mock_result.returncode = 0
-        mock_result.stdout = json.dumps({
-            "type": "message",
-            "role": "assistant",
-            "status": "completed",
-            "content": [
-                {"type": "output_text", "text": "Hello from Codex!"}
-            ]
-        })
+        mock_result.stdout = json.dumps(
+            {
+                "type": "message",
+                "role": "assistant",
+                "status": "completed",
+                "content": [{"type": "output_text", "text": "Hello from Codex!"}],
+            }
+        )
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
@@ -169,7 +174,8 @@ class TestCodexTransport:
         response = transport.execute("Test prompt", options)
 
         assert isinstance(response, CodexResponse)
-        assert len(response.content) == 1 and response.content[0].text == "Hello from Codex!"
+        assert len(response.content) == 1
+        assert response.content[0].text == "Hello from Codex!"
         assert response.role == "assistant"
         assert response.model == "o4-mini"
 
@@ -185,21 +191,24 @@ class TestCodexTransport:
         """Test execution with multiple content blocks."""
         mock_result = Mock()
         mock_result.returncode = 0
-        mock_result.stdout = json.dumps({
-            "type": "message",
-            "role": "assistant",
-            "status": "completed",
-            "content": [
-                {"type": "output_text", "text": "Part 1"},
-                {"type": "output_text", "text": "Part 2"},
-                {"type": "output_text", "text": "Part 3"}
-            ]
-        })
+        mock_result.stdout = json.dumps(
+            {
+                "type": "message",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                    {"type": "output_text", "text": "Part 1"},
+                    {"type": "output_text", "text": "Part 2"},
+                    {"type": "output_text", "text": "Part 3"},
+                ],
+            }
+        )
         mock_result.stderr = ""
         mock_subprocess_run.return_value = mock_result
 
         response = transport.execute("Test", CodexOptions())
-        assert len(response.content) == 1 and response.content[0].text == "Part 1\nPart 2\nPart 3"
+        assert len(response.content) == 1
+        assert response.content[0].text == "Part 1\nPart 2\nPart 3"
 
     def test_execute_success_plain_text_fallback(self, transport, mock_subprocess_run, mock_find_executable):
         """Test execution with plain text response (non-JSON)."""
@@ -210,7 +219,8 @@ class TestCodexTransport:
         mock_subprocess_run.return_value = mock_result
 
         response = transport.execute("Test", CodexOptions())
-        assert len(response.content) == 1 and response.content[0].text == "Plain text response"
+        assert len(response.content) == 1
+        assert response.content[0].text == "Plain text response"
         assert response.raw_response == {"raw_output": "Plain text response"}
 
     def test_execute_error_non_zero_exit(self, transport, mock_subprocess_run, mock_find_executable):
@@ -242,10 +252,7 @@ class TestCodexTransport:
     async def test_send_query_no_retry(self, transport, mock_find_executable):
         """Test send_query with retry disabled."""
         with patch.object(transport, "execute") as mock_execute:
-            mock_execute.return_value = CodexResponse(
-                content="Test response",
-                role="assistant"
-            )
+            mock_execute.return_value = CodexResponse(content="Test response", role="assistant")
 
             options = CodexOptions(no_retry=True)
             messages = []
@@ -281,7 +288,7 @@ class TestCodexTransport:
             # First call fails with timeout, second succeeds
             mock_execute.side_effect = [
                 TransportError("Connection timeout"),
-                CodexResponse(content="Success", role="assistant")
+                CodexResponse(content="Success", role="assistant"),
             ]
 
             options = CodexOptions(retry_count=2, retry_delay=0.1)
@@ -294,7 +301,7 @@ class TestCodexTransport:
             assert messages[0].content[0].text == "Success"
             assert mock_execute.call_count == 2
 
-    @pytest.mark.asyncio 
+    @pytest.mark.asyncio
     async def test_send_query_non_retryable_error(self, transport, mock_find_executable):
         """Test send_query with non-retryable error."""
         with patch.object(transport, "execute") as mock_execute:
@@ -342,14 +349,14 @@ class TestCodexTransport:
             "too many requests",
             "503 Service Unavailable",
             "502 Bad Gateway",
-            "429 Too Many Requests"
+            "429 Too Many Requests",
         ]
 
         for error_msg in retryable_errors:
             with patch.object(transport, "execute") as mock_execute:
                 mock_execute.side_effect = [
                     TransportError(error_msg),
-                    CodexResponse(content="Success", role="assistant")
+                    CodexResponse(content="Success", role="assistant"),
                 ]
 
                 options = CodexOptions(retry_count=1, retry_delay=0.1)

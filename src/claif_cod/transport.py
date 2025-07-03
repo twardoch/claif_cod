@@ -1,6 +1,4 @@
-
-
-    # this_file: claif_cod/src/claif_cod/transport.py
+# this_file: claif_cod/src/claif_cod/transport.py
 """
 Transport layer for Claif Codex CLI communication.
 
@@ -9,15 +7,17 @@ subprocess communication with the Codex CLI, including command execution,
 output parsing, and retry mechanisms.
 """
 
+import asyncio
+import contextlib
 import json
 import os
 import shlex
 import signal
 import subprocess
 import time
-import asyncio
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional, Union, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from claif.common import InstallError, TransportError, find_executable
 from loguru import logger
@@ -29,7 +29,16 @@ from tenacity import (
     wait_exponential,
 )
 
-from claif_cod.types import CodexOptions, CodexResponse, CodexMessage, ResultMessage, TextBlock, CodeBlock, ErrorBlock, ContentBlock
+from claif_cod.types import (
+    CodeBlock,
+    CodexMessage,
+    CodexOptions,
+    CodexResponse,
+    ContentBlock,
+    ErrorBlock,
+    ResultMessage,
+    TextBlock,
+)
 
 
 class CodexTransport:
@@ -49,7 +58,7 @@ class CodexTransport:
             verbose: If True, enables verbose logging for debugging purposes.
         """
         self.verbose: bool = verbose
-        self.process: Optional[asyncio.Process] = None
+        self.process: asyncio.Process | None = None
         logger.debug("Initialized Codex transport")
 
     async def connect(self) -> None:
@@ -73,14 +82,14 @@ class CodexTransport:
                 # Try graceful termination first
                 if self.process.returncode is None:
                     self.process.terminate()
-                    
+
                     # Wait for graceful termination with timeout
                     try:
                         await asyncio.wait_for(self.process.wait(), timeout=5.0)
                     except asyncio.TimeoutError:
                         # Force kill if graceful termination failed
                         logger.debug("Process didn't terminate gracefully, forcing kill")
-                        if os.name != 'nt':
+                        if os.name != "nt":
                             # Kill entire process group on Unix
                             try:
                                 os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
@@ -89,16 +98,16 @@ class CodexTransport:
                         else:
                             # Just kill the process on Windows
                             self.process.kill()
-                        
+
                         # Wait for forced termination
                         await self.process.wait()
-                
+
                 self.process = None
             except Exception as e:
                 logger.debug(f"Error during Codex CLI process disconnect: {e}")
                 self.process = None
 
-    async def send_query(self, prompt: str, options: CodexOptions) -> AsyncIterator[Union[CodexMessage, ResultMessage]]:
+    async def send_query(self, prompt: str, options: CodexOptions) -> AsyncIterator[CodexMessage | ResultMessage]:
         """
         Sends a query to the Codex CLI with retry logic.
 
@@ -137,7 +146,7 @@ class CodexTransport:
 
         # Define exceptions that are considered retryable. These typically indicate
         # temporary issues like network problems or service unavailability.
-        retry_exceptions: Tuple[Type[Exception], ...] = (
+        retry_exceptions: tuple[type[Exception], ...] = (
             subprocess.TimeoutExpired,
             TransportError,
             ConnectionError,
@@ -161,7 +170,7 @@ class CodexTransport:
 
                     # Execute the query and collect all results.
                     # This is necessary to check if any output was received at all.
-                    results: List[Union[CodexMessage, ResultMessage]] = []
+                    results: list[CodexMessage | ResultMessage] = []
                     async for message in self._execute_async(prompt, options):
                         results.append(message)
                         yield message
@@ -187,7 +196,9 @@ class CodexTransport:
                 session_id="codex",  # Placeholder session_id
             )
 
-    async def _execute_async(self, prompt: str, options: CodexOptions) -> AsyncIterator[Union[CodexMessage, ResultMessage]]:
+    async def _execute_async(
+        self, prompt: str, options: CodexOptions
+    ) -> AsyncIterator[CodexMessage | ResultMessage]:
         """
         Executes a Codex command asynchronously and streams its output.
 
@@ -206,25 +217,25 @@ class CodexTransport:
         Raises:
             TransportError: If execution fails or times out.
         """
-        command: List[str] = self._build_command(prompt, options)
-        env: Dict[str, str] = self._build_env()
-        cwd: Optional[Union[str, Path]] = options.working_dir or options.cwd
+        command: list[str] = self._build_command(prompt, options)
+        env: dict[str, str] = self._build_env()
+        cwd: str | Path | None = options.working_dir or options.cwd
 
         if self.verbose:
             logger.debug(f"Running command: {' '.join(command)}")
             logger.debug(f"Working directory: {cwd}")
 
         start_time: float = time.time()
-        process: Optional[asyncio.Process] = None
+        process: asyncio.Process | None = None
 
         try:
             # Create the subprocess. Using `asyncio.create_subprocess_exec` for direct
             # asynchronous subprocess management, capturing stdout and stderr.
             # Use process group on Unix for better cleanup
             preexec_fn = None
-            if os.name != 'nt':  # Unix-like systems
+            if os.name != "nt":  # Unix-like systems
                 preexec_fn = os.setsid
-                
+
             process = await asyncio.create_subprocess_exec(
                 *command,
                 env=env,
@@ -237,22 +248,27 @@ class CodexTransport:
 
             # Read stdout line by line to process streaming output
             while True:
-                line_bytes: Optional[bytes] = await process.stdout.readline()
+                line_bytes: bytes | None = await process.stdout.readline()
                 if not line_bytes:
                     break
                 line: str = line_bytes.decode("utf-8").strip()
                 if line:
                     try:
                         # Attempt to parse each line as JSON.
-                        data: Dict[str, Any] = json.loads(line)
+                        data: dict[str, Any] = json.loads(line)
                         # Convert parsed JSON data into appropriate CodexMessage content blocks.
-                        content_blocks: List[ContentBlock] = []
+                        content_blocks: list[ContentBlock] = []
                         if data.get("type") == "message" and "content" in data:
                             for block_data in data["content"]:
                                 if block_data.get("type") == "output_text":
                                     content_blocks.append(TextBlock(text=block_data.get("text", "")))
                                 elif block_data.get("type") == "code":
-                                    content_blocks.append(CodeBlock(language=block_data.get("language", ""), content=block_data.get("content", "")))
+                                    content_blocks.append(
+                                        CodeBlock(
+                                            language=block_data.get("language", ""),
+                                            content=block_data.get("content", ""),
+                                        )
+                                    )
                                 elif block_data.get("type") == "error":
                                     content_blocks.append(ErrorBlock(error_message=block_data.get("error_message", "")))
                             yield CodexMessage(role=data.get("role", "assistant"), content=content_blocks)
@@ -270,22 +286,21 @@ class CodexTransport:
             except asyncio.TimeoutError:
                 # Force kill the process if it times out
                 logger.warning(f"Process timed out after {timeout_seconds}s, terminating")
-                if os.name != 'nt':
-                    try:
+                if os.name != "nt":
+                    with contextlib.suppress(ProcessLookupError):
                         os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
                 else:
                     process.kill()
                 await process.wait()
-                raise TransportError(f"Command timed out after {timeout_seconds}s")
-            
+                msg = f"Command timed out after {timeout_seconds}s"
+                raise TransportError(msg)
+
             duration: float = time.time() - start_time
 
             if returncode != 0:
                 # Read any remaining stderr output for error messages.
                 stderr_output: str = (await process.stderr.read()).decode("utf-8").strip()
-                error_msg: str = f"Codex command failed (exit code {returncode})";
+                error_msg: str = f"Codex command failed (exit code {returncode})"
                 if stderr_output:
                     error_msg += f": {stderr_output}"
                 raise TransportError(error_msg)
@@ -307,17 +322,15 @@ class CodexTransport:
                         await asyncio.wait_for(process.wait(), timeout=2.0)
                     except asyncio.TimeoutError:
                         # Force kill if needed
-                        if os.name != 'nt':
-                            try:
+                        if os.name != "nt":
+                            with contextlib.suppress(ProcessLookupError):
                                 os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                            except ProcessLookupError:
-                                pass
                         else:
                             process.kill()
                         await process.wait()
                 except Exception as cleanup_error:
                     logger.debug(f"Error during process cleanup: {cleanup_error}")
-            
+
             # Re-raise the original exception
             if isinstance(e, TransportError):
                 raise
@@ -325,7 +338,7 @@ class CodexTransport:
                 msg = f"Failed to execute Codex command: {e}"
                 raise TransportError(msg) from e
 
-    def _build_command(self, prompt: str, options: CodexOptions) -> List[str]:
+    def _build_command(self, prompt: str, options: CodexOptions) -> list[str]:
         """
         Constructs the command-line argument list for the Codex CLI subprocess.
 
@@ -347,7 +360,7 @@ class CodexTransport:
         path_obj: Path = Path(cli_path)
         if path_obj.exists() and path_obj.is_file():
             # If it's an existing file, treat it as a single executable path.
-            command: List[str] = [cli_path]
+            command: list[str] = [cli_path]
         elif " " in cli_path:
             # If it contains spaces but isn't a direct file, assume it's a command
             # with arguments and split it using shlex for proper handling of quotes.
@@ -389,7 +402,7 @@ class CodexTransport:
 
         return command
 
-    def _build_env(self) -> Dict[str, str]:
+    def _build_env(self) -> dict[str, str]:
         """
         Constructs the environment variables dictionary for the Codex CLI subprocess.
 
@@ -404,7 +417,8 @@ class CodexTransport:
             # Attempt to import and use `inject_claif_bin_to_path` from `claif.common.utils`
             # to ensure the Claif binaries are discoverable by the subprocess.
             from claif.common.utils import inject_claif_bin_to_path
-            env: Dict[str, str] = inject_claif_bin_to_path()
+
+            env: dict[str, str] = inject_claif_bin_to_path()
         except ImportError:
             # If `claif.common.utils` is not available, fall back to the current environment.
             env = os.environ.copy()
@@ -414,7 +428,7 @@ class CodexTransport:
         env["CLAIF_PROVIDER"] = "codex"
         return env
 
-    def _find_cli(self, exec_path: Optional[str] = None) -> str:
+    def _find_cli(self, exec_path: str | None = None) -> str:
         """
         Locates the Codex CLI executable.
 
@@ -436,4 +450,5 @@ class CodexTransport:
             return find_executable("codex", exec_path)
         except InstallError as e:
             # Wrap InstallError in TransportError for consistency within the transport layer.
-            raise TransportError(f"Codex CLI executable not found: {e}") from e
+            msg = f"Codex CLI executable not found: {e}"
+            raise TransportError(msg) from e

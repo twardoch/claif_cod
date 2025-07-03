@@ -31,16 +31,10 @@ class TestHelperFunctions:
 
     def test_convert_claif_to_codex_options(self):
         """Test options conversion."""
-        claif_opts = ClaifOptions(
-            model="gpt-4",
-            temperature=0.7,
-            max_tokens=1000,
-            timeout=60,
-            verbose=True
-        )
-        
+        claif_opts = ClaifOptions(model="gpt-4", temperature=0.7, max_tokens=1000, timeout=60, verbose=True)
+
         codex_opts = _convert_claif_to_codex_options(claif_opts)
-        
+
         assert isinstance(codex_opts, CodexOptions)
         assert codex_opts.model == "gpt-4"
         assert codex_opts.temperature == 0.7
@@ -52,7 +46,7 @@ class TestHelperFunctions:
         """Test options conversion with defaults."""
         claif_opts = ClaifOptions()
         codex_opts = _convert_claif_to_codex_options(claif_opts)
-        
+
         assert codex_opts.model == "o4-mini"  # Default when None
 
 
@@ -80,10 +74,7 @@ class TestCodexClient:
 
         # Mock transport responses
         async def mock_send_query(prompt, options):
-            yield CodexMessage(
-                role="assistant",
-                content=[TextBlock(text="Test response")]
-            )
+            yield CodexMessage(role="assistant", content=[TextBlock(text="Test response")])
             yield ResultMessage(error=False, session_id="test")
 
         mock_transport.send_query.return_value = mock_send_query("Test prompt", None)
@@ -112,10 +103,7 @@ class TestCodexClient:
             # Verify options were converted correctly
             assert isinstance(options, CodexOptions)
             assert options.model == "gpt-4"
-            yield CodexMessage(
-                role="assistant",
-                content=[TextBlock(text="Response")]
-            )
+            yield CodexMessage(role="assistant", content=[TextBlock(text="Response")])
 
         mock_transport.send_query.side_effect = mock_send_query
 
@@ -137,10 +125,7 @@ class TestCodexClient:
         async def mock_send_query(prompt, options):
             assert isinstance(options, CodexOptions)
             assert options.model == "o4-mini"  # Default
-            yield CodexMessage(
-                role="assistant",
-                content=[TextBlock(text="Default response")]
-            )
+            yield CodexMessage(role="assistant", content=[TextBlock(text="Default response")])
 
         mock_transport.send_query.side_effect = mock_send_query
 
@@ -149,7 +134,8 @@ class TestCodexClient:
             messages.append(msg)
 
         assert len(messages) == 1
-        assert len(messages[0].content) == 1 and messages[0].content[0].text == "Default response"
+        assert len(messages[0].content) == 1
+        assert messages[0].content[0].text == "Default response"
 
     @pytest.mark.asyncio
     async def test_query_with_error_result(self, client, mock_transport):
@@ -157,11 +143,7 @@ class TestCodexClient:
         client.transport = mock_transport
 
         async def mock_send_query(prompt, options):
-            yield ResultMessage(
-                error=True,
-                message="API error occurred",
-                session_id="test"
-            )
+            yield ResultMessage(error=True, message="API error occurred", session_id="test")
 
         mock_transport.send_query.side_effect = mock_send_query
 
@@ -178,16 +160,11 @@ class TestCodexClient:
         # Mock transport to raise CLI missing error on first connect
         with patch("claif_cod.client.CodexTransport") as MockTransport:
             mock_transport = MockTransport.return_value
-            mock_transport.connect = AsyncMock(
-                side_effect=[FileNotFoundError("codex not found"), None]
-            )
+            mock_transport.connect = AsyncMock(side_effect=[FileNotFoundError("codex not found"), None])
             mock_transport.disconnect = AsyncMock()
-            
+
             async def mock_send_query(prompt, options):
-                yield CodexMessage(
-                    role="assistant",
-                    content=[TextBlock(text="Installed and working")]
-                )
+                yield CodexMessage(role="assistant", content=[TextBlock(text="Installed and working")])
 
             mock_transport.send_query = AsyncMock(side_effect=mock_send_query)
 
@@ -201,7 +178,8 @@ class TestCodexClient:
                     messages.append(msg)
 
                 assert len(messages) == 1
-                assert len(messages[0].content) == 1 and messages[0].content[0].text == "Installed and working"
+                assert len(messages[0].content) == 1
+                assert messages[0].content[0].text == "Installed and working"
                 mock_install.assert_called_once()
 
     @pytest.mark.asyncio
@@ -209,15 +187,10 @@ class TestCodexClient:
         """Test when auto-install fails."""
         with patch("claif_cod.client.CodexTransport") as MockTransport:
             mock_transport = MockTransport.return_value
-            mock_transport.connect = AsyncMock(
-                side_effect=OSError("codex not found")
-            )
+            mock_transport.connect = AsyncMock(side_effect=OSError("codex not found"))
 
             with patch("claif_cod.client.install_codex") as mock_install:
-                mock_install.return_value = {
-                    "installed": False,
-                    "message": "Installation failed"
-                }
+                mock_install.return_value = {"installed": False, "message": "Installation failed"}
 
                 new_client = CodexClient()
                 with pytest.raises(ProviderError) as exc_info:
@@ -232,10 +205,7 @@ class TestCodexClient:
         client.transport = mock_transport
 
         async def mock_send_query(prompt, options):
-            yield CodexMessage(
-                role="assistant",
-                content=[TextBlock(text="No retry")]
-            )
+            yield CodexMessage(role="assistant", content=[TextBlock(text="No retry")])
 
         mock_transport.send_query.side_effect = mock_send_query
 
@@ -245,7 +215,8 @@ class TestCodexClient:
             messages.append(msg)
 
         assert len(messages) == 1
-        assert len(messages[0].content) == 1 and messages[0].content[0].text == "No retry"
+        assert len(messages[0].content) == 1
+        assert messages[0].content[0].text == "No retry"
         # Should be called only once
         mock_transport.send_query.assert_called_once()
 
@@ -261,11 +232,9 @@ class TestCodexClient:
             nonlocal attempt_count
             attempt_count += 1
             if attempt_count == 1:
-                raise ConnectionError("Network error")
-            yield CodexMessage(
-                role="assistant",
-                content=[TextBlock(text="Success after retry")]
-            )
+                msg = "Network error"
+                raise ConnectionError(msg)
+            yield CodexMessage(role="assistant", content=[TextBlock(text="Success after retry")])
 
         mock_transport.send_query.side_effect = mock_send_query
 
@@ -275,7 +244,8 @@ class TestCodexClient:
             messages.append(msg)
 
         assert len(messages) == 1
-        assert len(messages[0].content) == 1 and messages[0].content[0].text == "Success after retry"
+        assert len(messages[0].content) == 1
+        assert messages[0].content[0].text == "Success after retry"
         assert attempt_count == 2
 
     @pytest.mark.asyncio
@@ -284,12 +254,13 @@ class TestCodexClient:
         client.transport = mock_transport
 
         async def mock_send_query(prompt, options):
-            raise TimeoutError("Connection timeout")
+            msg = "Connection timeout"
+            raise TimeoutError(msg)
 
         mock_transport.send_query.side_effect = mock_send_query
 
         options = ClaifOptions(retry_count=2, retry_delay=0.1)
-        
+
         with pytest.raises(TimeoutError):
             async for _ in client.query("Test", options):
                 pass
@@ -318,12 +289,13 @@ class TestCodexClient:
         client.transport = mock_transport
 
         async def mock_send_query(prompt, options):
-            raise ValueError("Some transport error")
+            msg = "Some transport error"
+            raise ValueError(msg)
 
         mock_transport.send_query.side_effect = mock_send_query
 
         options = CodexOptions(retry_count=0)  # Disable retry for this test
-        
+
         with pytest.raises(ProviderError) as exc_info:
             async for _ in client.query("Test", options):
                 pass
@@ -337,12 +309,13 @@ class TestCodexClient:
         client.transport = mock_transport
 
         async def mock_send_query(prompt, options):
-            raise Exception("Test error")
+            msg = "Test error"
+            raise Exception(msg)
 
         mock_transport.send_query.side_effect = mock_send_query
 
         options = CodexOptions(retry_count=0)
-        
+
         with pytest.raises(ProviderError):
             async for _ in client.query("Test", options):
                 pass
@@ -359,7 +332,7 @@ class TestModuleLevelFunctions:
         """Test the module-level query function."""
         with patch("claif_cod.client._get_client") as mock_get_client:
             mock_client = MagicMock()
-            
+
             async def mock_query(prompt, options):
                 yield Message(role=MessageRole.ASSISTANT, content="Module test")
 
@@ -371,14 +344,15 @@ class TestModuleLevelFunctions:
                 messages.append(msg)
 
             assert len(messages) == 1
-            assert len(messages[0].content) == 1 and messages[0].content[0].text == "Module test"
+            assert len(messages[0].content) == 1
+            assert messages[0].content[0].text == "Module test"
 
     def test_get_client_singleton(self):
         """Test that _get_client returns singleton."""
-        from claif_cod.client import _get_client, _client
-
         # Reset global client
         import claif_cod.client
+        from claif_cod.client import _client, _get_client
+
         claif_cod.client._client = None
 
         client1 = _get_client()

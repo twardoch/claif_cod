@@ -16,7 +16,6 @@ async def main():
     async for _message in query("What is the capital of France?"):
         pass
 
-
     # Example 2: Query with custom retry settings
 
     options = ClaifOptions(
@@ -27,7 +26,6 @@ async def main():
 
     async for _message in query("Explain Python decorators", options):
         pass
-
 
     # Example 3: Query with retry disabled
 

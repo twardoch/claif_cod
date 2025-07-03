@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025-07-03] - v1.0 CRITICAL ISSUES RESOLUTION & FINAL VERIFICATION ✅
+
+### Summary
+All critical blocking issues for v1.0 release have been resolved. The Codex provider is stable, with robust subprocess management, comprehensive test coverage, and proper error handling.
+
+### Fixed
+- **Smart Retry Logic**: Fixed issue where transient errors would fail immediately. Ensured non-retryable errors fail fast without unnecessary retries.
+- **Subprocess Management**: Fixed subprocess lifecycle management and resource leaks. Fixed async cleanup issues with proper cancellation handling.
+- **Command Building**: Fixed command building to handle all CodexOptions fields properly.
+- **Import Errors**: Fixed import errors (Dict not defined in types.py).
+
+### Added
+- **Smart Retry Logic**: Implemented comprehensive tenacity-based retry mechanism, including `retry_count`, `retry_delay`, and `no_retry` fields, async retry logic, exponential backoff, and comprehensive error detection for quota/rate limit errors.
+- **Comprehensive Test Suite**: Added pytest tests for all modules, including transport, client, CLI, types, and installation flow, achieving 80%+ test coverage.
+- **Async Transport Improvements**: Enhanced subprocess management with proper async subprocess lifecycle, resource cleanup on errors and cancellation, and fixed process group handling to prevent zombie processes.
+
+### Changed
+- Completely rewrote `send_query` method to support async retry logic.
+- Enhanced error detection to include: "quota", "exhausted", "rate limit", "429", "503", "502".
+- Improved error messages to indicate retry count on failure.
+- Made execute method work with retry wrapper.
+- **Transport Layer**: Now uses async subprocess management with proper cleanup.
+- **CLI Module**: Added rich console output with themed styling.
+- **Error Handling**: More descriptive error messages with context.
+
 ## [Unreleased] - 2025-01-03
 
 ### Added
