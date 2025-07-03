@@ -9,13 +9,14 @@
 - [x] **Achieve 80%+ test coverage** - Comprehensive test suite implemented ✅
 
 ### Critical Bug Fixes
-- [ ] **Fix subprocess lifecycle management** - Proper process termination and cleanup
-- [ ] **Eliminate resource leaks** - No hanging processes or memory leaks
-- [ ] **Fix async cleanup issues** - Proper cancellation and resource management
+- [x] **Fix `ImportError` for `_print` from `claif.common.utils`** - Import issue resolved ✅
+- [x] **Fix subprocess lifecycle management** - Proper process termination and cleanup implemented ✅
+- [x] **Eliminate resource leaks** - No hanging processes or memory leaks ✅
+- [x] **Fix async cleanup issues** - Proper cancellation and resource management ✅
 
 ### Essential Functionality
-- [ ] **CLI discovery works reliably** - Find codex-cli in various installation locations
-- [ ] **Auto-install verification** - Codex CLI installs correctly when missing
+- [x] **CLI discovery works reliably** - CLI discovery logic working correctly ✅
+- [x] **Auto-install verification** - Auto-install process implemented ✅
 
 ## HIGH PRIORITY (Required for Stable Release)
 
