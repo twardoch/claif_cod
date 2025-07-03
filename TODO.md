@@ -13,7 +13,7 @@
 - [ ] **Eliminate resource leaks** - No hanging processes or memory leaks
 - [ ] **Fix async cleanup issues** - Proper cancellation and resource management
 
-### Essential Functionality  
+### Essential Functionality
 - [ ] **CLI discovery works reliably** - Find codex-cli in various installation locations
 - [ ] **Auto-install verification** - Codex CLI installs correctly when missing
 
@@ -33,7 +33,7 @@
 
 ### Integration Testing
 - [ ] **Mock CLI testing** - Comprehensive fake codex-cli for testing
-- [ ] **End-to-end workflows** - Complete user scenarios 
+- [ ] **End-to-end workflows** - Complete user scenarios
 - [ ] **Error recovery testing** - Network failures, timeouts, crashes
 - [ ] **Installation flow testing** - Auto-install in clean environments
 
