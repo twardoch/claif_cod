@@ -1,6 +1,7 @@
 # this_file: claif_cod/src/claif_cod/install.py
 
 import shutil
+import sys
 
 from loguru import logger
 
@@ -34,6 +35,35 @@ except ImportError:
 
 def install_codex() -> dict:
     """Install Codex CLI with bundled approach."""
+    import platform
+    
+    # Use Windows-specific installer on Windows
+    if platform.system() == "Windows":
+        try:
+            import subprocess
+            from pathlib import Path
+            
+            # Get the path to the Windows installer script
+            script_path = Path(__file__).parent.parent.parent / "scripts" / "install_windows.py"
+            
+            if script_path.exists():
+                logger.info("Using Windows-specific installer...")
+                result = subprocess.run([
+                    sys.executable, str(script_path)
+                ], capture_output=True, text=True)
+                
+                if result.returncode == 0:
+                    logger.success("✓ Codex installed successfully via Windows installer")
+                    return {"installed": ["codex"], "failed": []}
+                else:
+                    logger.error(f"Windows installer failed: {result.stderr}")
+                    # Fall back to bundled approach
+            else:
+                logger.warning("Windows installer script not found, using bundled approach")
+        except Exception as e:
+            logger.error(f"Failed to use Windows installer: {e}")
+            # Fall back to bundled approach
+    
     if not ensure_bun_installed():
         return {
             "installed": [],
