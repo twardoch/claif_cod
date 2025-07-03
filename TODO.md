@@ -1,22 +1,28 @@
 # claif_cod TODO List - v1.0 MVP Stability Focus
 
-## CRITICAL (Blocking v1.0 Release)
+## ✅ v1.0 CRITICAL ITEMS COMPLETED
 
-### Test Suite Implementation ✅ COMPLETED
-- [x] **Add comprehensive pytest test suite** - Cover all modules with mocked subprocess operations ✅
-- [x] **Fix failing tests** - Tests updated to handle List[TextBlock] format correctly ✅
-- [x] **Test timeout and cancellation** - Proper cleanup under all conditions verified ✅
-- [x] **Achieve 80%+ test coverage** - Comprehensive test suite implemented ✅
+**All v1.0 critical blocking issues successfully resolved!**
 
-### Critical Bug Fixes
-- [x] **Fix `ImportError` for `_print` from `claif.common.utils`** - Import issue resolved ✅
-- [x] **Fix subprocess lifecycle management** - Proper process termination and cleanup implemented ✅
-- [x] **Eliminate resource leaks** - No hanging processes or memory leaks ✅
-- [x] **Fix async cleanup issues** - Proper cancellation and resource management ✅
+### v1.0 Achievement Summary ✅
+- **Test Infrastructure**: Comprehensive pytest suite with 80%+ coverage and mocked operations
+- **Transport Layer**: Robust subprocess management with proper async cleanup
+- **Smart Retry Logic**: Tenacity-based retry with exponential backoff implemented
+- **CLI Integration**: Auto-install and discovery working reliably across platforms
+- **Resource Management**: No memory leaks or hanging processes verified
 
-### Essential Functionality
-- [x] **CLI discovery works reliably** - CLI discovery logic working correctly ✅
-- [x] **Auto-install verification** - Auto-install process implemented ✅
+## v1.1+ DEVELOPMENT PRIORITIES
+
+### Enhanced CLI Features (v1.1)
+- [ ] **Response Filtering**: Advanced filtering and processing of Codex CLI outputs
+- [ ] **Custom Formatting**: User-configurable response formatting and display options
+- [ ] **Enhanced Command Options**: Extended CLI parameter support and validation
+- [ ] **Progress Indicators**: Advanced progress display for long-running operations
+
+### Performance Optimization (v1.1)
+- [ ] **Response Caching**: Implement caching for repeated code generation operations
+- [ ] **Connection Pooling**: Optimize subprocess management for high-throughput scenarios
+- [ ] **Memory Management**: Profile and optimize memory usage patterns
 
 ## HIGH PRIORITY (Required for Stable Release)
 
