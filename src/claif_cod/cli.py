@@ -27,7 +27,7 @@ from claif_cod.types import CodeBlock, CodexOptions, ErrorBlock, TextBlock
 
 
 from claif.common.utils import (
-    _print, _print_error, _print_success, _print_warning, _confirm, _prompt
+    _print, _print_error, _print_success, _print_warning, _confirm, _prompt, process_images
 )
 
 
@@ -99,7 +99,7 @@ class CodexCLI:
         # Process images if provided, converting comma-separated string to a list of paths.
         image_paths: List[str] | None = None
         if images:
-            image_paths = self._process_images(images)
+            image_paths = process_images(images)
 
         # Create a CodexOptions object from the provided arguments and configuration.
         options: CodexOptions = CodexOptions(
@@ -358,46 +358,7 @@ class CodexCLI:
             _print_error(f"Unknown action: {action}")
             _print("Available actions: show, set")
 
-    def _process_images(self, images: str) -> list[str]:
-        """Process comma-separated image paths or URLs.
-
-        Args:
-            images: Comma-separated image paths or URLs
-
-        Returns:
-            List of image file paths (downloads URLs to temp files)
-        """
-        import tempfile
-        import urllib.request
-        from pathlib import Path
-
-        image_list = [img.strip() for img in images.split(",") if img.strip()]
-        processed_paths = []
-
-        for img in image_list:
-            if img.startswith(("http://", "https://")):
-                # Download URL to temp file
-                try:
-                    suffix = Path(img).suffix or ".jpg"
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-                        logger.debug(f"Downloading image from {img}")
-                        with urllib.request.urlopen(img) as response:
-                            tmp_file.write(response.read())
-                        processed_paths.append(tmp_file.name)
-                        logger.debug(f"Downloaded to {tmp_file.name}")
-                except Exception as e:
-                    _print_error(f"Failed to download image {img}: {e}")
-                    continue
-            else:
-                # Local file path
-                path = Path(img).expanduser().resolve()
-                if path.exists():
-                    processed_paths.append(str(path))
-                else:
-                    _print_error(f"Image file not found: {img}")
-                    continue
-
-        return processed_paths
+    
 
     def modes(self) -> None:
         """Show available action modes."""

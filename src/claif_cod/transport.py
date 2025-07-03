@@ -1,35 +1,4 @@
-"""Transport layer for Claif Codex CLI communication."""
 
-import json
-import os
-import shlex
-import subprocess
-from pathlib import Path
-
-from claif.common import InstallError, TransportError, find_executable
-from loguru import logger
-from tenacity import (
-    AsyncRetrying,
-    RetryError,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
-
-from claif_cod.types import CodexOptions, CodexResponse
-
-
-class CodexTransport:
-    """Transport for communicating with Codex CLI."""
-
-    def __init__(self, verbose: bool = False):
-        """Initialize transport.
-
-        Args:
-            verbose: Enable verbose logging
-        """
-        self.verbose = verbose
-        logger.debug("Initialized Codex transport")
 
     # this_file: claif_cod/src/claif_cod/transport.py
 """

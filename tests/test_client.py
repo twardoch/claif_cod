@@ -73,7 +73,7 @@ class TestCodexClient:
         transport.send_query = AsyncMock()
         return transport
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_query_with_codex_options(self, client, mock_transport):
         """Test query with CodexOptions."""
         client.transport = mock_transport
@@ -86,7 +86,7 @@ class TestCodexClient:
             )
             yield ResultMessage(error=False, session_id="test")
 
-        mock_transport.send_query.side_effect = mock_send_query
+        mock_transport.send_query.return_value = mock_send_query("Test prompt", None)
 
         options = CodexOptions(model="o4", temperature=0.5)
         messages = []
@@ -95,7 +95,9 @@ class TestCodexClient:
 
         assert len(messages) == 1
         assert isinstance(messages[0], Message)
-        assert messages[0].content == "Test response"
+        # Content is now auto-converted to List[TextBlock]
+        assert len(messages[0].content) == 1
+        assert messages[0].content[0].text == "Test response"
         assert messages[0].role == MessageRole.ASSISTANT
 
         mock_transport.connect.assert_called_once()
@@ -123,7 +125,9 @@ class TestCodexClient:
             messages.append(msg)
 
         assert len(messages) == 1
-        assert messages[0].content == "Response"
+        # Content is now auto-converted to List[TextBlock]
+        assert len(messages[0].content) == 1
+        assert messages[0].content[0].text == "Response"
 
     @pytest.mark.asyncio
     async def test_query_no_options(self, client, mock_transport):
@@ -145,7 +149,7 @@ class TestCodexClient:
             messages.append(msg)
 
         assert len(messages) == 1
-        assert messages[0].content == "Default response"
+        assert len(messages[0].content) == 1 and messages[0].content[0].text == "Default response"
 
     @pytest.mark.asyncio
     async def test_query_with_error_result(self, client, mock_transport):
@@ -197,7 +201,7 @@ class TestCodexClient:
                     messages.append(msg)
 
                 assert len(messages) == 1
-                assert messages[0].content == "Installed and working"
+                assert len(messages[0].content) == 1 and messages[0].content[0].text == "Installed and working"
                 mock_install.assert_called_once()
 
     @pytest.mark.asyncio
@@ -241,7 +245,7 @@ class TestCodexClient:
             messages.append(msg)
 
         assert len(messages) == 1
-        assert messages[0].content == "No retry"
+        assert len(messages[0].content) == 1 and messages[0].content[0].text == "No retry"
         # Should be called only once
         mock_transport.send_query.assert_called_once()
 
@@ -271,7 +275,7 @@ class TestCodexClient:
             messages.append(msg)
 
         assert len(messages) == 1
-        assert messages[0].content == "Success after retry"
+        assert len(messages[0].content) == 1 and messages[0].content[0].text == "Success after retry"
         assert attempt_count == 2
 
     @pytest.mark.asyncio
@@ -367,7 +371,7 @@ class TestModuleLevelFunctions:
                 messages.append(msg)
 
             assert len(messages) == 1
-            assert messages[0].content == "Module test"
+            assert len(messages[0].content) == 1 and messages[0].content[0].text == "Module test"
 
     def test_get_client_singleton(self):
         """Test that _get_client returns singleton."""

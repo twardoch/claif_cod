@@ -169,7 +169,7 @@ class TestCodexTransport:
         response = transport.execute("Test prompt", options)
 
         assert isinstance(response, CodexResponse)
-        assert response.content == "Hello from Codex!"
+        assert len(response.content) == 1 and response.content[0].text == "Hello from Codex!"
         assert response.role == "assistant"
         assert response.model == "o4-mini"
 
@@ -199,7 +199,7 @@ class TestCodexTransport:
         mock_subprocess_run.return_value = mock_result
 
         response = transport.execute("Test", CodexOptions())
-        assert response.content == "Part 1\nPart 2\nPart 3"
+        assert len(response.content) == 1 and response.content[0].text == "Part 1\nPart 2\nPart 3"
 
     def test_execute_success_plain_text_fallback(self, transport, mock_subprocess_run, mock_find_executable):
         """Test execution with plain text response (non-JSON)."""
@@ -210,7 +210,7 @@ class TestCodexTransport:
         mock_subprocess_run.return_value = mock_result
 
         response = transport.execute("Test", CodexOptions())
-        assert response.content == "Plain text response"
+        assert len(response.content) == 1 and response.content[0].text == "Plain text response"
         assert response.raw_response == {"raw_output": "Plain text response"}
 
     def test_execute_error_non_zero_exit(self, transport, mock_subprocess_run, mock_find_executable):
