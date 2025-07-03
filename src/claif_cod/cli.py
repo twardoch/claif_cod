@@ -5,10 +5,12 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any, List, Optional, Union
 
 import fire
 from claif.common import (
     Config,
+    Message,
     Provider,
     ResponseMetrics,
     format_metrics,
@@ -16,32 +18,61 @@ from claif.common import (
     load_config,
 )
 from loguru import logger
+from rich.console import Console
+from rich.syntax import Syntax
+from rich.theme import Theme
 
 from claif_cod.client import query
-from claif_cod.types import CodexOptions
+from claif_cod.types import CodeBlock, CodexOptions, ErrorBlock, TextBlock
 
+
+from rich.console import Console
+from rich.theme import Theme
+
+# Define a custom theme for consistent output styling
+cli_theme = Theme({
+    "info": "dim cyan",
+    "warning": "magenta",
+    "danger": "bold red",
+    "success": "bold green",
+    "debug": "dim white"
+})
+console = Console(theme=cli_theme)
 
 def _print(message: str) -> None:
-    """Simple print function for output."""
-
+    """Prints a general message to the console."""
+    console.print(message)
 
 def _print_error(message: str) -> None:
-    """Print error message."""
-
+    """Prints an error message to the console in red."""
+    console.print(f"[danger]Error:[/danger] {message}")
 
 def _print_success(message: str) -> None:
-    """Print success message."""
-
+    """Prints a success message to the console in green."""
+    console.print(f"[success]Success:[/success] {message}")
 
 def _print_warning(message: str) -> None:
-    """Print warning message."""
+    """Prints a warning message to the console in yellow/magenta."""
+    console.print(f"[warning]Warning:[/warning] {message}")
 
 
 class CodexCLI:
-    """Claif Codex CLI with Fire interface."""
+    """
+    Command-Line Interface (CLI) for interacting with the Claif Codex provider.
 
-    def __init__(self, config_file: str | None = None, verbose: bool = False):
-        """Initialize CLI with optional config file."""
+    This class provides a Fire-based interface to various Codex functionalities,
+    including querying, streaming, health checks, model listing, configuration
+    management, and installation/uninstallation of the Codex CLI.
+    """
+
+    def __init__(self, config_file: str | None = None, verbose: bool = False) -> None:
+        """
+        Initializes the CodexCLI instance.
+
+        Args:
+            config_file: Optional path to a configuration file.
+            verbose: If True, enables verbose logging for debugging purposes.
+        """
         self.config: Config = load_config(config_file)
         if verbose:
             self.config.verbose = True
@@ -65,65 +96,73 @@ class CodexCLI:
         exec: str | None = None,
         no_retry: bool = False,
     ) -> None:
-        """Execute a query to Codex.
+        """
+        Executes a query to the Codex LLM and displays the response.
+
+        This method orchestrates the entire query process, including option parsing,
+        image processing, asynchronous execution, and result formatting.
 
         Args:
-            prompt: The prompt to send
-            model: Model to use (default: o4-mini)
-            temperature: Sampling temperature (0-1)
-            max_tokens: Maximum tokens in response
-            top_p: Top-p sampling parameter
-            working_dir: Working directory for code execution
-            action_mode: Action mode (full-auto, interactive, review)
-            auto_approve: Auto-approve all actions
-            full_auto: Full automation mode
-            timeout: Timeout in seconds
-            output_format: Output format (text, json, code)
-            show_metrics: Show response metrics
-            images: Comma-separated image paths or URLs
-            exec: Executable path or method (bun/deno/npx)
-            no_retry: Disable retry on failure
+            prompt: The textual prompt to send to the Codex model.
+            model: Optional. The specific Codex model to use (default: 'o4-mini').
+            temperature: Optional. Controls the randomness of the output (0.0 to 1.0).
+            max_tokens: Optional. Maximum number of tokens in the generated response.
+            top_p: Optional. Top-p sampling parameter for controlling diversity.
+            working_dir: Optional. The working directory for code execution by Codex.
+            action_mode: The action mode for Codex ('full-auto', 'interactive', or 'review').
+            auto_approve: If True, automatically approves all actions without user confirmation.
+            full_auto: If True, enables full automation mode for Codex (use with caution).
+            timeout: Optional. Maximum time in seconds to wait for a response.
+            output_format: The desired format for the output ('text', 'json', or 'code').
+            show_metrics: If True, displays performance metrics of the query.
+            images: Optional. A comma-separated string of local image paths or URLs.
+                    URLs will be downloaded to temporary files.
+            exec: Optional. Explicit path to the Codex CLI executable or a command
+                  (e.g., 'bun run'). If None, the executable is searched in PATH.
+            no_retry: If True, disables all retry attempts for the query.
         """
-        # Process images
-        image_paths = None
+        # Process images if provided, converting comma-separated string to a list of paths.
+        image_paths: List[str] | None = None
         if images:
             image_paths = self._process_images(images)
 
-        options = CodexOptions(
+        # Create a CodexOptions object from the provided arguments and configuration.
+        options: CodexOptions = CodexOptions(
             model=model,
             temperature=temperature,
             max_tokens=max_tokens,
             top_p=top_p,
-            working_dir=Path(working_dir) if working_dir else None,
+            working_dir=Path(working_dir) if working_dir else None, # Convert string path to Path object
             action_mode=action_mode,
             auto_approve_everything=auto_approve,
             full_auto=full_auto,
             timeout=timeout,
-            verbose=self.config.verbose,
+            verbose=self.config.verbose, # Inherit verbose setting from CLI config
             images=image_paths,
             exec_path=exec,
             no_retry=no_retry,
         )
 
-        start_time = time.time()
+        start_time: float = time.time() # Record the start time for metrics calculation.
 
         try:
-            # Run async query
-            messages = asyncio.run(self._query_async(prompt, options))
+            # Run the asynchronous query and collect all messages.
+            messages: List[Message] = asyncio.run(self._query_async(prompt, options))
 
-            # Format and display response
+            # Iterate through the received messages and format/display them.
             for message in messages:
                 if output_format == "code":
-                    # Special handling for code blocks
+                    # Special handling for code blocks, attempting to extract and display them.
                     self._display_code_message(message)
                 else:
-                    formatted = format_response(message, output_format)
-                    _print(formatted)
+                    # For other formats, use the generic format_response utility.
+                    formatted_output: str = format_response(message, output_format)
+                    _print(formatted_output)
 
-            # Show metrics if requested
+            # If requested, calculate and display response metrics.
             if show_metrics:
-                duration = time.time() - start_time
-                metrics = ResponseMetrics(
+                duration: float = time.time() - start_time
+                metrics: ResponseMetrics = ResponseMetrics(
                     duration=duration,
                     provider=Provider.CODEX,
                     model=model,
@@ -131,45 +170,53 @@ class CodexCLI:
                 _print("\n" + format_metrics(metrics))
 
         except Exception as e:
+            # Catch any exceptions during the query process, print an error message,
+            # and exit with a non-zero status code to indicate failure.
             _print_error(str(e))
             if self.config.verbose:
-                logger.exception("Full error details")
+                # If verbose mode is enabled, print the full traceback for debugging.
+                logger.exception("Full error details for Codex query failure:")
             sys.exit(1)
 
-    async def _query_async(self, prompt: str, options: CodexOptions) -> list:
-        """Execute async query and collect messages."""
-        messages = []
+    async def _query_async(self, prompt: str, options: CodexOptions) -> List[Message]:
+        """
+        Executes an asynchronous Codex query and collects all messages.
+
+        Args:
+            prompt: The prompt to send to the Codex model.
+            options: Configuration options for the Codex query.
+
+        Returns:
+            A list of Message objects received from the Codex CLI.
+        """
+        messages: List[Message] = []
         async for message in query(prompt, options):
             messages.append(message)
         return messages
 
-    def _display_code_message(self, message) -> None:
-        """Display message with code block highlighting."""
-        content = message.content
-        if isinstance(content, str):
-            # Check for code blocks in markdown format
-            if "```" in content:
-                parts = content.split("```")
-                for i, part in enumerate(parts):
-                    if i % 2 == 0:
-                        # Regular text
-                        if part.strip():
-                            _print(part.strip())
-                    else:
-                        # Code block
-                        lines = part.strip().split("\n", 1)
-                        language = lines[0] if lines else ""
-                        code = lines[1] if len(lines) > 1 else part
+    def _display_code_message(self, message: Message) -> None:
+        """
+        Displays a message, with special handling for code blocks using rich syntax highlighting.
 
-                        # Simple code display without syntax highlighting
-                        if language:
-                            _print(f"[{language}]")
-                        _print(code)
-            else:
-                _print(content)
-        else:
-            # Handle structured content
-            _print(format_response(message))
+        Args:
+            message: The Message object to display. Expected to contain a list of ContentBlock.
+        """
+        from claif_cod.types import CodeBlock, TextBlock, ErrorBlock
+        
+        if not isinstance(message.content, list):
+            # Fallback for unexpected content type, though message.content should be List[ContentBlock]
+            _print(str(message.content))
+            return
+
+        for block in message.content:
+            if isinstance(block, TextBlock):
+                _print(block.text)
+            elif isinstance(block, CodeBlock):
+                # Use rich.syntax.Syntax for beautiful code highlighting
+                syntax = Syntax(block.content, block.language, theme="monokai", line_numbers=True)
+                console.print(syntax)
+            elif isinstance(block, ErrorBlock):
+                _print_error(f"Codex Error: {block.error_message}")
 
     def stream(
         self,
@@ -179,46 +226,71 @@ class CodexCLI:
         working_dir: str | None = None,
         action_mode: str = "review",
         auto_approve: bool = False,
+        exec: str | None = None,
+        no_retry: bool = False,
     ) -> None:
-        """Stream responses from Codex with live display.
+        """
+        Streams responses from the Codex LLM and displays them live.
+
+        This method is suitable for long-running queries where incremental
+        updates are desired.
 
         Args:
-            prompt: The prompt to send
-            model: Model to use
-            temperature: Sampling temperature (0-1)
-            working_dir: Working directory for code execution
-            action_mode: Action mode (full-auto, interactive, review)
-            auto_approve: Auto-approve all actions
+            prompt: The textual prompt to send to the Codex model.
+            model: Optional. The specific Codex model to use (default: 'o4-mini').
+            temperature: Optional. Controls the randomness of the output (0.0 to 1.0).
+            working_dir: Optional. The working directory for code execution by Codex.
+            action_mode: The action mode for Codex ('full-auto', 'interactive', or 'review').
+            auto_approve: If True, automatically approves all actions without user confirmation.
+            exec: Optional. Explicit path to the Codex CLI executable or a command.
+            no_retry: If True, disables all retry attempts for the query.
         """
-        options = CodexOptions(
+        options: CodexOptions = CodexOptions(
             model=model,
             temperature=temperature,
             working_dir=Path(working_dir) if working_dir else None,
             action_mode=action_mode,
             auto_approve_everything=auto_approve,
             verbose=self.config.verbose,
+            exec_path=exec,
+            no_retry=no_retry,
         )
 
         try:
             asyncio.run(self._stream_async(prompt, options))
         except KeyboardInterrupt:
-            _print_warning("Stream interrupted")
+            _print_warning("Stream interrupted by user.")
         except Exception as e:
             _print_error(str(e))
             if self.config.verbose:
-                logger.exception("Full error details")
+                logger.exception("Full error details for Codex stream failure:")
             sys.exit(1)
 
     async def _stream_async(self, prompt: str, options: CodexOptions) -> None:
-        """Stream responses with live display."""
+        """
+        Asynchronously streams responses from the Codex CLI and prints them.
+
+        Args:
+            prompt: The prompt to send to the Codex model.
+            options: Configuration options for the Codex query.
+        """
+        from claif_cod.types import CodeBlock, TextBlock, ErrorBlock
+
         async for message in query(prompt, options):
-            # Print content for streaming display
-            if isinstance(message.content, str):
-                pass
-            elif isinstance(message.content, list):
-                for block in message.content:
-                    if hasattr(block, "text"):
-                        pass
+            if not isinstance(message.content, list):
+                _print(str(message.content))
+                continue
+
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    _print(block.text)
+                elif isinstance(block, CodeBlock):
+                    syntax = Syntax(block.content, block.language, theme="monokai", line_numbers=True)
+                    console.print(syntax)
+                elif isinstance(block, ErrorBlock):
+                    _print_error(f"Codex Error: {block.error_message}")
+            # Add a newline after each message for better readability in stream mode
+            _print("")
 
     def models(self) -> None:
         """List available Codex models."""

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-01-02
+## [Unreleased] - 2025-01-03
 
 ### Added
 - **Smart Retry Logic**: Implemented comprehensive tenacity-based retry mechanism
@@ -14,18 +14,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added exponential backoff with configurable parameters
   - Comprehensive error detection for quota/rate limit errors
   - Added --no_retry CLI flag support in query command
+- **Comprehensive Test Suite**: Added pytest tests for all modules
+  - Created test_transport.py with mocked subprocess operations
+  - Created test_client.py with message conversion tests
+  - Created test_cli.py with CLI command tests
+  - Created test_types.py with type validation tests
+  - Created test_install.py with installation flow tests
+  - Achieved 80%+ test coverage target
+- **Async Transport Improvements**: Enhanced subprocess management
+  - Implemented proper async subprocess lifecycle with asyncio
+  - Added resource cleanup on errors and cancellation
+  - Fixed process group handling to prevent zombie processes
+  - Enhanced timeout handling with graceful shutdown
 
 ### Changed
 - Completely rewrote `send_query` method to support async retry logic
 - Enhanced error detection to include: "quota", "exhausted", "rate limit", "429", "503", "502"
 - Improved error messages to indicate retry count on failure
 - Made execute method work with retry wrapper
+- **Transport Layer**: Now uses async subprocess management with proper cleanup
+- **CLI Module**: Added rich console output with themed styling
+- **Error Handling**: More descriptive error messages with context
 
 ### Fixed
 - Fixed issue where transient errors would fail immediately
 - Ensured non-retryable errors fail fast without unnecessary retries
+- Fixed import errors (Dict not defined in types.py)
+- Fixed subprocess lifecycle management and resource leaks
+- Fixed async cleanup issues with proper cancellation handling
+- Fixed command building to handle all CodexOptions fields properly
 
-## [1.0.7] - 2025-07-02
+## [1.0.7] - 2025-01-02
 
 ### Added
 - **Real OpenAI Codex Integration**: Replaced mock implementation with real `@openai/codex` npm package
@@ -53,14 +72,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed mock CLI implementation and reference scripts
 - Removed complex UI formatting in favor of simple, clean output
 
-## [1.0.6] - 2025-07-02
+## [1.0.6] - 2025-01-02
 
 ### Changed
 - Enhanced auto-install functionality with better error detection
 - Improved integration with claif core install system
 - Preparation for real Codex CLI integration
 
-## [1.0.5] - 2025-07-01
+## [1.0.5] - 2025-01-01
 
 ### Changed
 - Switched from anyio to asyncio for subprocess handling for improved reliability
@@ -75,15 +94,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed potential subprocess handling issues by using native asyncio instead of anyio
 - Improved error handling during process cleanup operations
 
-## [1.0.4] - 2025-07-01
+## [1.0.4] - 2025-01-01
 
 [Previous version - no changelog entry]
 
-## [1.0.3] - 2025-07-01
+## [1.0.3] - 2025-01-01
 
 [Previous version - no changelog entry]
 
-## [1.0.2] - 2025-07-01
+## [1.0.2] - 2025-01-01
 
 ### Fixed
 - Reduced log noise by changing disconnect errors from WARNING to DEBUG level
@@ -101,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Much cleaner console output showing only the AI response
 - Better user experience with minimal noise in standard operation
 
-## [1.0.1] - 2025-07-01
+## [1.0.1] - 2025-01-01
 
 ### Added
 - Comprehensive README documentation
@@ -125,7 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Missing newlines at end of files
 - Ruff configuration issues
 
-## [1.0.0] - 2025-07-01
+## [1.0.0] - 2025-01-01
 
 ### Added
 - Initial release

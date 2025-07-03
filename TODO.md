@@ -3,21 +3,18 @@
 ## CRITICAL (Blocking v1.0 Release)
 
 ### Test Suite Implementation
-- [ ] **Add comprehensive pytest test suite** - Cover all modules with mocked subprocess operations
-- [ ] **Mock all subprocess calls** - Test transport.py with fake CLI processes  
-- [ ] **Test JSON parsing robustness** - Handle malformed, partial, and edge case responses
-- [ ] **Achieve 80%+ test coverage** - Verify accuracy with clean test environments
+- [x] **Add comprehensive pytest test suite** - Cover all modules with mocked subprocess operations
+- [ ] **Fix failing tests** - Update tests to expect List[TextBlock] instead of str
 - [ ] **Test timeout and cancellation** - Ensure proper cleanup under all conditions
+- [ ] **Achieve 80%+ test coverage** - Verify accuracy with clean test environments
 
 ### Critical Bug Fixes
 - [ ] **Fix subprocess lifecycle management** - Proper process termination and cleanup
 - [ ] **Eliminate resource leaks** - No hanging processes or memory leaks
-- [ ] **Improve error handling** - Clear, actionable messages for all failure modes
 - [ ] **Fix async cleanup issues** - Proper cancellation and resource management
 
 ### Essential Functionality  
 - [ ] **CLI discovery works reliably** - Find codex-cli in various installation locations
-- [ ] **Basic operations function** - Query, message parsing, error handling work
 - [ ] **Auto-install verification** - Codex CLI installs correctly when missing
 
 ## HIGH PRIORITY (Required for Stable Release)

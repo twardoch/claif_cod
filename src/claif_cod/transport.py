@@ -31,54 +31,133 @@ class CodexTransport:
         self.verbose = verbose
         logger.debug("Initialized Codex transport")
 
+    # this_file: claif_cod/src/claif_cod/transport.py
+"""
+Transport layer for Claif Codex CLI communication.
+
+This module provides the `CodexTransport` class, responsible for managing
+subprocess communication with the Codex CLI, including command execution,
+output parsing, and retry mechanisms.
+"""
+
+import json
+import os
+import shlex
+import subprocess
+import asyncio
+from pathlib import Path
+from typing import Any, AsyncIterator, Dict, List, Optional, Union
+
+from claif.common import InstallError, TransportError, find_executable
+from loguru import logger
+from tenacity import (
+    AsyncRetrying,
+    RetryError,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from claif_cod.types import CodexOptions, CodexResponse, CodexMessage, ResultMessage, TextBlock, CodeBlock, ErrorBlock, ContentBlock
+
+
+class CodexTransport:
+    """
+    Manages communication with the OpenAI Codex command-line interface (CLI).
+
+    This class handles the execution of Codex CLI commands as a subprocess,
+    manages environment variables, parses output, and implements retry logic
+    for transient errors.
+    """
+
+    def __init__(self, verbose: bool = False) -> None:
+        """
+        Initializes the CodexTransport instance.
+
+        Args:
+            verbose: If True, enables verbose logging for debugging purposes.
+        """
+        self.verbose: bool = verbose
+        self.process: Optional[asyncio.Process] = None
+        logger.debug("Initialized Codex transport")
+
     async def connect(self) -> None:
-        """Initialize transport (no-op for subprocess)."""
+        """
+        Establishes a connection for the transport.
+
+        This method is a no-op for subprocess-based transports as the connection
+        is established implicitly with each command execution.
+        """
+        pass
 
     async def disconnect(self) -> None:
-        """Cleanup transport (no-op for subprocess)."""
-
-    async def send_query(self, prompt: str, options: CodexOptions):
-        """Send query to Codex CLI with retry logic.
-
-        This is an async wrapper around the synchronous execute method
-        with added retry functionality for transient errors.
         """
-        from claif_cod.types import CodexMessage, ResultMessage, TextBlock
-        
-        # Get retry settings from options or use defaults
-        retry_count = getattr(options, "retry_count", 3)
-        retry_delay = getattr(options, "retry_delay", 1.0)
-        no_retry = getattr(options, "no_retry", False)
-        
-        # If retry is disabled, execute once without retry
+        Cleans up the transport by terminating any running Codex CLI subprocess.
+
+        Ensures that the process is properly terminated and its resources are released.
+        Logs a debug message if an error occurs during termination.
+        """
+        if self.process:
+            try:
+                self.process.terminate()
+                await self.process.wait()
+                self.process = None
+            except Exception as e:
+                logger.debug(f"Error during Codex CLI process disconnect: {e}")
+                self.process = None
+
+    async def send_query(self, prompt: str, options: CodexOptions) -> AsyncIterator[Union[CodexMessage, ResultMessage]]:
+        """
+        Sends a query to the Codex CLI with retry logic.
+
+        This method constructs the CLI command, sets up the environment, and
+        executes the command as an asynchronous subprocess. It includes retry
+        functionality for transient errors based on the provided options.
+
+        Args:
+            prompt: The user's prompt to send to the Codex CLI.
+            options: An instance of `CodexOptions` containing configuration for the query.
+
+        Yields:
+            An asynchronous iterator of `CodexMessage` or `ResultMessage` objects.
+            `CodexMessage` contains content from the Codex CLI.
+            `ResultMessage` indicates the status and duration of the query.
+        """
+        # Retrieve retry settings from options, with sensible defaults.
+        retry_count: int = getattr(options, "retry_count", 3)
+        retry_delay: float = getattr(options, "retry_delay", 1.0)
+        no_retry: bool = getattr(options, "no_retry", False)
+
+        # If retries are explicitly disabled or the retry count is zero/negative,
+        # execute the query once without any retry mechanism.
         if no_retry or retry_count <= 0:
             try:
-                response = self.execute(prompt, options)
-                yield CodexMessage(
-                    role=response.role,
-                    content=[TextBlock(text=response.content)],
-                )
-                yield ResultMessage(
-                    duration=0.0,
-                    session_id="codex",
-                )
+                async for message in self._execute_async(prompt, options):
+                    yield message
             except Exception as e:
+                logger.error(f"Codex query failed without retry: {e}")
                 yield ResultMessage(
                     error=True,
                     message=str(e),
-                    session_id="codex",
+                    session_id="codex",  # Placeholder session_id
                 )
             return
-        
-        # Define retry exceptions
-        retry_exceptions = (
+
+        # Define exceptions that are considered retryable. These typically indicate
+        # temporary issues like network problems or service unavailability.
+        retry_exceptions: Tuple[Type[Exception], ...] = (
             subprocess.TimeoutExpired,
             TransportError,
             ConnectionError,
-            TimeoutError,
+            asyncio.TimeoutError,
         )
-        
+
         try:
+            # Configure and execute the retry mechanism.
+            # `stop_after_attempt` ensures a maximum number of attempts.
+            # `wait_exponential` implements a back-off strategy to avoid overwhelming the service.
+            # `retry_if_exception_type` specifies which exceptions trigger a retry.
+            # `reraise=False` prevents `RetryError` from being re-raised, allowing custom handling.
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(retry_count + 1),
                 wait=wait_exponential(multiplier=retry_delay, min=retry_delay, max=retry_delay * 10),
@@ -87,215 +166,247 @@ class CodexTransport:
             ):
                 with attempt:
                     logger.debug(f"Codex query attempt {attempt.retry_state.attempt_number}/{retry_count}")
-                    
-                    # Check if the error is retryable
-                    try:
-                        response = self.execute(prompt, options)
-                    except TransportError as e:
-                        error_msg = str(e).lower()
-                        retryable_indicators = [
-                            "timeout", "connection", "network", "quota", "exhausted",
-                            "rate limit", "too many requests", "503", "502", "429"
-                        ]
-                        if any(indicator in error_msg for indicator in retryable_indicators):
-                            logger.warning(f"Retryable error: {e}")
-                            raise
-                        else:
-                            # Non-retryable error
-                            yield ResultMessage(
-                                error=True,
-                                message=str(e),
-                                session_id="codex",
-                            )
-                            return
-                    
-                    # Success - yield messages
-                    yield CodexMessage(
-                        role=response.role,
-                        content=[TextBlock(text=response.content)],
-                    )
-                    yield ResultMessage(
-                        duration=0.0,
-                        session_id="codex",
-                    )
+
+                    # Execute the query and collect all results.
+                    # This is necessary to check if any output was received at all.
+                    results: List[Union[CodexMessage, ResultMessage]] = []
+                    async for message in self._execute_async(prompt, options):
+                        results.append(message)
+                        yield message
+
+                    # If no results were received after a successful command execution,
+                    # it indicates an unexpected empty response, which is treated as an error.
+                    if not results:
+                        msg = "No response received from Codex CLI"
+                        raise TransportError(msg)
+
+                    # If execution reaches here, at least one result was received,
+                    # and the query is considered successful for this attempt.
                     return
-                    
+
         except RetryError as e:
-            last_error = e.__cause__ or e
+            # This block is executed if all retry attempts fail.
+            # It extracts the last encountered error and yields a ResultMessage indicating failure.
+            last_error: Exception = e.__cause__ or e
             logger.error(f"All retry attempts failed for Codex query: {last_error}")
             yield ResultMessage(
                 error=True,
                 message=f"Codex query failed after {retry_count} retries: {last_error!s}",
-                session_id="codex",
+                session_id="codex",  # Placeholder session_id
             )
 
-    def execute(self, prompt: str, options: CodexOptions) -> CodexResponse:
-        """Execute a Codex command.
+    async def _execute_async(self, prompt: str, options: CodexOptions) -> AsyncIterator[Union[CodexMessage, ResultMessage]]:
+        """
+        Executes a Codex command asynchronously and streams its output.
+
+        This is an internal helper method used by `send_query`. It handles
+        subprocess creation, communication, and initial parsing of stdout/stderr.
 
         Args:
-            prompt: The prompt to send
-            options: Codex options
+            prompt: The prompt to send to the Codex CLI.
+            options: Codex options for building the command.
 
-        Returns:
-            CodexResponse containing the result
+        Yields:
+            An asynchronous iterator of `CodexMessage` or `ResultMessage` objects.
+            `CodexMessage` contains parsed content from the CLI.
+            `ResultMessage` indicates the status and duration of the execution.
 
         Raises:
-            TransportError: If execution fails
+            TransportError: If execution fails or times out.
         """
-        command = self._build_command(prompt, options)
-        env = self._build_env()
-        cwd = options.working_dir or options.cwd
+        command: List[str] = self._build_command(prompt, options)
+        env: Dict[str, str] = self._build_env()
+        cwd: Optional[Union[str, Path]] = options.working_dir or options.cwd
 
         if self.verbose:
             logger.debug(f"Running command: {' '.join(command)}")
             logger.debug(f"Working directory: {cwd}")
 
-        try:
-            result = subprocess.run(
-                command,
-                check=False,
-                capture_output=True,
-                text=True,
-                env=env,
-                timeout=options.timeout,
-                cwd=cwd,
-            )
+        start_time: float = os.time()
+        process: Optional[asyncio.Process] = None
 
-            if result.returncode != 0:
-                error_msg = f"Codex command failed (exit code {result.returncode})"
-                if result.stderr:
-                    error_msg += f": {result.stderr}"
+        try:
+            # Create the subprocess. Using `asyncio.create_subprocess_exec` for direct
+            # asynchronous subprocess management, capturing stdout and stderr.
+            process = await asyncio.create_subprocess_exec(
+                *command,
+                env=env,
+                cwd=cwd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            self.process = process
+
+            # Read stdout line by line to process streaming output.
+            while True:
+                line_bytes: Optional[bytes] = await process.stdout.readline()
+                if not line_bytes:
+                    break
+                line: str = line_bytes.decode("utf-8").strip()
+                if line:
+                    try:
+                        # Attempt to parse each line as JSON.
+                        data: Dict[str, Any] = json.loads(line)
+                        # Convert parsed JSON data into appropriate CodexMessage content blocks.
+                        content_blocks: List[ContentBlock] = []
+                        if data.get("type") == "message" and "content" in data:
+                            for block_data in data["content"]:
+                                if block_data.get("type") == "output_text":
+                                    content_blocks.append(TextBlock(text=block_data.get("text", "")))
+                                elif block_data.get("type") == "code":
+                                    content_blocks.append(CodeBlock(language=block_data.get("language", ""), content=block_data.get("content", "")))
+                                elif block_data.get("type") == "error":
+                                    content_blocks.append(ErrorBlock(error_message=block_data.get("error_message", "")))
+                            yield CodexMessage(role=data.get("role", "assistant"), content=content_blocks)
+                        else:
+                            # If not a recognized message type, treat as plain text.
+                            yield CodexMessage(role="assistant", content=[TextBlock(text=line)])
+                    except json.JSONDecodeError:
+                        # If a line is not valid JSON, treat it as a plain text message.
+                        yield CodexMessage(role="assistant", content=[TextBlock(text=line)])
+
+            # Wait for the process to finish and get its return code.
+            returncode: int = await process.wait()
+            duration: float = os.time() - start_time
+
+            if returncode != 0:
+                # Read any remaining stderr output for error messages.
+                stderr_output: str = (await process.stderr.read()).decode("utf-8").strip()
+                error_msg: str = f"Codex command failed (exit code {returncode})";
+                if stderr_output:
+                    error_msg += f": {stderr_output}"
                 raise TransportError(error_msg)
 
-            # Parse response - Codex CLI outputs JSONL format
-            content = ""
-            role = "assistant"
-            raw_response = None
-
-            if result.stdout.strip():
-                try:
-                    # Parse each line as separate JSON
-                    for line in result.stdout.strip().split("\n"):
-                        if line.strip():
-                            data = json.loads(line)
-
-                            # Look for assistant message with content
-                            if (
-                                data.get("type") == "message"
-                                and data.get("role") == "assistant"
-                                and data.get("status") == "completed"
-                            ):
-                                # Extract text from content blocks
-                                content_blocks = data.get("content", [])
-                                text_parts = []
-                                for block in content_blocks:
-                                    if block.get("type") == "output_text":
-                                        text_parts.append(block.get("text", ""))
-
-                                content = "\n".join(text_parts)
-                                role = data.get("role", "assistant")
-                                raw_response = data
-                                break
-
-                except json.JSONDecodeError:
-                    # Fallback for non-JSON output
-                    content = result.stdout
-                    raw_response = {"raw_output": result.stdout}
-
-            if not content:
-                content = result.stdout or "No response received"
-
-            return CodexResponse(
-                content=content,
-                role=role,
-                model=options.model,
-                usage={},
-                raw_response=raw_response,
+            # Yield a success ResultMessage after successful execution.
+            yield ResultMessage(
+                duration=duration,
+                session_id="codex",  # Placeholder session_id
             )
 
         except subprocess.TimeoutExpired as e:
+            # Handle subprocess timeout specifically.
+            if process and process.returncode is None:
+                process.kill()
+                await process.wait()
             msg = f"Codex command timed out after {options.timeout}s"
             raise TransportError(msg) from e
         except Exception as e:
+            # Catch any other unexpected exceptions during execution.
+            if process and process.returncode is None:
+                process.kill()
+                await process.wait()
             msg = f"Failed to execute Codex command: {e}"
             raise TransportError(msg) from e
 
-    def _build_command(self, prompt: str, options: CodexOptions) -> list[str]:
-        """Build command line arguments."""
-        exec_path = getattr(options, "exec_path", None)
-        cli_path = self._find_cli(exec_path)
+    def _build_command(self, prompt: str, options: CodexOptions) -> List[str]:
+        """
+        Constructs the command-line argument list for the Codex CLI subprocess.
 
-        # Check if this is a single file path (possibly with spaces) or a command with arguments
-        path_obj = Path(cli_path)
-        if path_obj.exists():
-            # This is a file path, treat as single argument even if it has spaces
-            command = [cli_path]
+        This method intelligently handles the executable path (whether it's a simple
+        command name or a full path with spaces) and appends various options
+        based on the provided `CodexOptions`.
+
+        Args:
+            prompt: The user's prompt to be included in the command.
+            options: An instance of `CodexOptions` containing command-line arguments.
+
+        Returns:
+            A list of strings representing the full command to be executed.
+        """
+        cli_path: str = self._find_cli(options.exec_path)
+
+        # Determine how to split the command based on whether `cli_path` is a direct
+        # file path or a command string that might contain arguments (e.g., "deno run").
+        path_obj: Path = Path(cli_path)
+        if path_obj.exists() and path_obj.is_file():
+            # If it's an existing file, treat it as a single executable path.
+            command: List[str] = [cli_path]
         elif " " in cli_path:
-            # This is a command with arguments (e.g., "deno run script.js")
+            # If it contains spaces but isn't a direct file, assume it's a command
+            # with arguments and split it using shlex for proper handling of quotes.
             command = shlex.split(cli_path)
         else:
-            # Simple command name
+            # Otherwise, treat it as a simple command name (e.g., "codex").
             command = [cli_path]
 
-        # Model
+        # Add various options to the command list based on `CodexOptions`.
         if options.model:
             command.extend(["-m", options.model])
 
-        # Working directory (writable root for sandbox)
+        # Set the working directory for the Codex process.
         if options.working_dir:
             command.extend(["-w", str(options.working_dir)])
 
-        # Approval mode
+        # Set the action mode (e.g., "review", "full-auto").
         if options.action_mode:
             command.extend(["-a", options.action_mode])
 
-        # Auto-approve everything (dangerous)
+        # Enable dangerously auto-approve everything if specified.
         if options.auto_approve_everything:
             command.append("--dangerously-auto-approve-everything")
 
-        # Full auto mode
+        # Enable full auto mode if specified.
         if options.full_auto:
             command.append("--full-auto")
 
-        # Quiet mode for non-interactive output
+        # Add quiet mode flag for non-interactive output.
         command.append("-q")
 
-        # Add images if provided (Codex supports -i flag)
+        # Add image paths if provided.
         if options.images:
             for image_path in options.images:
                 command.extend(["-i", image_path])
 
-        # Prompt as positional argument
+        # Add the main prompt as a positional argument.
         command.append(prompt)
 
         return command
 
-    def _build_env(self) -> dict:
-        """Build environment variables."""
-        try:
-            from claif.common.utils import inject_claif_bin_to_path
+    def _build_env(self) -> Dict[str, str]:
+        """
+        Constructs the environment variables dictionary for the Codex CLI subprocess.
 
-            env = inject_claif_bin_to_path()
+        This method ensures that the `claif` binary directory is added to the PATH
+        (if available) and sets specific environment variables required by the
+        Codex SDK and Claif framework.
+
+        Returns:
+            A dictionary of environment variables.
+        """
+        try:
+            # Attempt to import and use `inject_claif_bin_to_path` from `claif.common.utils`
+            # to ensure the Claif binaries are discoverable by the subprocess.
+            from claif.common.utils import inject_claif_bin_to_path
+            env: Dict[str, str] = inject_claif_bin_to_path()
         except ImportError:
+            # If `claif.common.utils` is not available, fall back to the current environment.
             env = os.environ.copy()
 
+        # Set specific environment variables for the Codex SDK and Claif provider identification.
         env["CODEX_SDK"] = "1"
         env["CLAIF_PROVIDER"] = "codex"
         return env
 
-    def _find_cli(self, exec_path: str | None = None) -> str:
-        """Find Codex CLI executable using simplified 3-mode logic.
+    def _find_cli(self, exec_path: Optional[str] = None) -> str:
+        """
+        Locates the Codex CLI executable.
+
+        It uses a simplified 3-mode logic:
+        1. If `exec_path` is provided, it attempts to use that directly.
+        2. Otherwise, it searches for "codex" in standard executable locations.
 
         Args:
-            exec_path: Optional explicit path provided by user
+            exec_path: An optional explicit path to the Codex CLI executable.
 
         Returns:
-            Path to the executable
+            The absolute path to the Codex CLI executable.
 
         Raises:
-            TransportError: If executable cannot be found
+            TransportError: If the Codex CLI executable cannot be found or accessed.
         """
         try:
+            # Use `find_executable` from `claif.common` to locate the executable.
             return find_executable("codex", exec_path)
         except InstallError as e:
-            raise TransportError(str(e)) from e
+            # Wrap InstallError in TransportError for consistency within the transport layer.
+            raise TransportError(f"Codex CLI executable not found: {e}") from e

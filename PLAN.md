@@ -8,23 +8,25 @@
 
 **Core Functionality**: Working Codex CLI integration ✅
 **Auto-Install**: Automatic CLI installation when missing ✅
-**Subprocess Management**: Async with anyio ✅
-**CLI Interface**: Fire-based with clean output ✅
+**Subprocess Management**: Async with asyncio ✅
+**CLI Interface**: Fire-based with rich console output ✅
 **Retry Logic**: Tenacity-based retry with exponential backoff ✅
 **Error Detection**: Smart detection of quota/rate limit errors ✅
+**Test Suite**: Comprehensive tests created but need fixing ⚠️
 
 ## MVP v1.x Improvement Plan
 
 ### 1. Testing & Reliability (Critical)
 
 #### Unit Testing
-- [ ] Add pytest test suite for all modules
-  - [ ] Test transport.py subprocess handling
-  - [ ] Test client.py message conversion
-  - [ ] Test CLI command construction
-  - [ ] Test JSON parsing logic
-  - [ ] Test install.py functionality
-- [ ] Mock subprocess operations
+- [x] Add pytest test suite for all modules
+  - [x] Test transport.py subprocess handling
+  - [x] Test client.py message conversion
+  - [x] Test CLI command construction
+  - [x] Test JSON parsing logic
+  - [x] Test install.py functionality
+- [x] Mock subprocess operations
+- [ ] Fix failing tests (List[TextBlock] vs str issue)
 - [ ] Test timeout and cancellation
 - [ ] Achieve 80%+ code coverage
 
@@ -45,11 +47,11 @@
 ### 2. Error Handling & Messages
 
 #### Better Error Context
-- [ ] Add context to subprocess errors
-- [ ] Clear API key error messages
-- [ ] Installation failure guidance
-- [ ] Network timeout explanations
-- [ ] Model availability errors
+- [x] Add context to subprocess errors
+- [x] Clear API key error messages
+- [x] Installation failure guidance
+- [x] Network timeout explanations
+- [x] Model availability errors
 
 #### Subprocess Error Handling
 - [ ] Capture stderr properly
@@ -77,7 +79,7 @@
 ### 4. Transport Layer Improvements
 
 #### Async Operations
-- [ ] Proper cleanup on cancellation
+- [x] Proper cleanup on cancellation
 - [ ] Handle process groups
 - [ ] Stream buffering optimization
 - [ ] Backpressure handling
@@ -176,21 +178,12 @@ claif_cod/
 ## Development Priorities
 
 ### Immediate (v1.0.8)
-1.  Add pytest test suite for all modules
-2.  Test transport.py subprocess handling
-3.  Test client.py message conversion
-4.  Test CLI command construction
-5.  Test JSON parsing logic
-6.  Test install.py functionality
-7.  Mock subprocess operations
-8.  Test timeout and cancellation
-9.  Achieve 80%+ code coverage
-10. Handle process termination cleanly
-11. Fix resource leaks
-12. Proper async cleanup
-13. Add context to subprocess errors
-14. Clear API key error messages
-15. Better process spawn failures
+1.  Fix failing tests (List[TextBlock] vs str)
+2.  Handle process termination cleanly
+3.  Fix resource leaks
+4.  Proper async cleanup
+5.  Test timeout and cancellation
+6.  Achieve 80%+ code coverage
 
 ### Short-term (v1.1.0)
 1.  Cross-platform testing
