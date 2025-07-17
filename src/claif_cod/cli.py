@@ -503,3 +503,7 @@ class CodexCLI:
 def main():
     """Main entry point for Fire CLI."""
     fire.Fire(CodexCLI)
+
+
+if __name__ == "__main__":
+    main()
