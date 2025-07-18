@@ -13,7 +13,7 @@
 name = 'claif_cod' # Package name on PyPI
 description = 'Codex provider for Claif - AI-powered code generation and manipulation through OpenAI Codex CLI' # Short description
 readme = 'README.md' # Path to README file
-requires-python = '>=3.10' # Minimum Python version
+requires-python = '>=3.11' # Minimum Python version
 keywords = [
     'ai',
     'cli',
@@ -32,7 +32,6 @@ dynamic = ["version"] # Fields set dynamically at build time
 classifiers = [
     'Development Status :: 4 - Beta', # Package maturity level
     'Programming Language :: Python',
-    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: Implementation :: CPython',
@@ -49,6 +48,15 @@ dependencies = [
     "rich>=13.0.0",
     "loguru>=0.7.0",
     "tenacity>=9.0.0",
+    "hatchling>=1.27.0",
+    "hatch-vcs>=0.5.0",
+    "build>=1.2.2.post1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-asyncio>=1.1.0",
+    "twine>=6.1.0",
+    "mypy>=1.17.0",
+    "ruff>=0.12.4",
 ]
 
 # Author information
@@ -126,6 +134,9 @@ all = [
     "sphinx-rtd-theme>=3.0.2",
     "sphinx-autodoc-typehints>=3.2.0",
     "myst-parser>=4.0.1", # Markdown support in Sphinx
+]
+build = [
+    "pyinstaller>=6.14.2",
 ]
 
 #------------------------------------------------------------------------------
@@ -218,7 +229,7 @@ exclude = [
 # Version control system hook configuration
 # Automatically updates the version file from git tags
 [tool.hatch.build.hooks.vcs]
-version-file = "src/claif_cod/__version__.py"
+version-file = "src/claif_cod/_version.py"
 
 # Version source configuration
 [tool.hatch.version]
@@ -254,7 +265,7 @@ fix = ["ruff check --fix --unsafe-fixes src/claif_cod tests", "ruff format --res
 # Matrix configuration to test across multiple Python versions
 
 [[tool.hatch.envs.all.matrix]]
-python = ["3.10", "3.11", "3.12"]
+python = ["3.11", "3.12"]
 
 #------------------------------------------------------------------------------
 # SPECIALIZED ENVIRONMENTS
@@ -355,7 +366,7 @@ omit = [
 #------------------------------------------------------------------------------
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -433,7 +444,7 @@ compare = [
 
 # Ruff linter and formatter configuration
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 120
 extend-exclude = [".git", ".venv", "venv", "dist", "build"]
 

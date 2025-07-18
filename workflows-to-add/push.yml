@@ -26,24 +26,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Ruff lint
-        uses: astral-sh/ruff-action@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-          args: "check --output-format=github"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Ruff lint
+        run: uv run ruff check src/claif_cod tests --output-format=github
 
       - name: Run Ruff Format
-        uses: astral-sh/ruff-action@v3
-        with:
-          version: "latest"
-          args: "format --check --respect-gitignore"
+        run: uv run ruff format src/claif_cod tests --check
+
+      - name: Run type checking
+        run: uv run mypy src/claif_cod
 
   test:
     name: Run Tests
     needs: quality
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12"]
         os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -64,19 +75,11 @@ jobs:
           enable-cache: true
           cache-suffix: ${{ matrix.os }}-${{ matrix.python-version }}
 
-      - name: Install test dependencies
-        run: |
-          uv pip install --system --upgrade pip
-          uv pip install --system ".[test]"
+      - name: Install dependencies
+        run: uv sync
 
-      - name: Run tests with Hatch (Unix)
-        if: runner.os != 'Windows'
-        run: uvx hatch test
-
-      - name: Run tests with Hatch (Windows)
-        if: runner.os == 'Windows'
-        run: uvx hatch test
-        shell: cmd
+      - name: Run tests
+        run: uv run pytest --cov=claif_cod --cov-report=xml --cov-report=term-missing -v
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -104,15 +107,15 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
-      - name: Install build tools
-        run: uv pip install build hatchling hatch-vcs
+      - name: Install dependencies
+        run: uv sync
 
       - name: Build distributions
-        run: uv run python -m build --outdir dist
+        run: uv run python -m build --no-isolation
 
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-files
           path: dist/
-          retention-days: 5 
+          retention-days: 5

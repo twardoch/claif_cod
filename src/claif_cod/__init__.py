@@ -8,7 +8,10 @@ from loguru import logger
 from claif_cod.client import query as codex_query
 from claif_cod.types import CodexOptions
 
-__version__ = "0.1.0"
+try:
+    from claif_cod._version import __version__
+except ImportError:
+    __version__ = "0.0.0+unknown"
 
 
 async def query(

@@ -33,11 +33,11 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
-      - name: Install build tools
-        run: uv pip install build hatchling hatch-vcs
+      - name: Install dependencies
+        run: uv sync
 
       - name: Build distributions
-        run: uv run python -m build --outdir dist
+        run: uv run python -m build --no-isolation
 
       - name: Verify distribution files
         run: |
@@ -82,11 +82,11 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
-      - name: Install build tools
-        run: uv pip install build hatchling hatch-vcs
+      - name: Install dependencies
+        run: uv sync
 
       - name: Build distributions
-        run: uv run python -m build --outdir dist
+        run: uv run python -m build --no-isolation
 
       - name: Verify distribution files
         run: |
@@ -105,4 +105,4 @@ jobs:
           files: dist/*
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
