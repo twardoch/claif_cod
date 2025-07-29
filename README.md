@@ -712,15 +712,154 @@ pre-commit install
 
 ### Running Tests
 
+The `claif_cod` package includes comprehensive tests to ensure robust functionality:
+
 ```bash
+# Install with test dependencies
+pip install -e ".[test]"
+
 # Run all tests
-pytest
+uvx hatch test
+
+# Run specific test modules
+uvx hatch test -- tests/test_functional.py -v
+uvx hatch test -- tests/test_client.py -v
 
 # Run with coverage
-pytest --cov=claif_cod --cov-report=html
+uvx hatch test -- --cov=src/claif_cod --cov-report=html
+```
 
-# Run specific test
-pytest tests/test_transport.py -v
+#### Test Structure
+
+```
+tests/
+├── test_functional.py       # End-to-end functionality tests
+├── test_client.py          # Client API tests
+├── test_transport.py       # Subprocess communication tests
+├── test_types.py           # Type conversion tests
+└── conftest.py             # Test fixtures and configuration
+```
+
+#### Example Test Usage
+
+The functional tests demonstrate how to use `claif_cod` effectively:
+
+```python
+# Test basic query functionality
+def test_basic_query():
+    client = CodexClient()
+    
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Write a hello world function"}]
+    )
+    
+    assert isinstance(response, ChatCompletion)
+    assert response.choices[0].message.role == "assistant"
+    assert len(response.choices[0].message.content) > 0
+
+# Test streaming responses
+def test_streaming():
+    client = CodexClient()
+    
+    stream = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Count to 3"}],
+        stream=True
+    )
+    
+    chunks = list(stream)
+    assert len(chunks) > 0
+    
+    # Reconstruct full message
+    content = "".join(
+        chunk.choices[0].delta.content or ""
+        for chunk in chunks
+        if chunk.choices and chunk.choices[0].delta.content
+    )
+    assert len(content) > 0
+
+# Test sandbox modes
+def test_sandbox_modes():
+    client = CodexClient(sandbox_mode="strict", approval_policy="always")
+    
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Execute this code safely"}]
+    )
+    
+    # Verify sandbox parameters were used
+    assert response.model == "gpt-4o"
+
+# Test working directory integration
+def test_working_directory():
+    client = CodexClient(working_dir="/tmp/test-project")
+    
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "List files in current directory"}]
+    )
+    
+    assert isinstance(response, ChatCompletion)
+```
+
+#### Mock Testing for CI/CD
+
+The tests use comprehensive mocking to work in CI environments without requiring the actual Codex CLI:
+
+```python
+from unittest.mock import patch, MagicMock
+import subprocess
+
+@patch("claif_cod.client.subprocess.run")
+@patch("shutil.which")
+def test_client_mocking(mock_which, mock_run):
+    # Mock CLI discovery
+    mock_which.return_value = "/usr/local/bin/codex"
+    
+    # Mock subprocess response
+    mock_run.return_value = MagicMock(
+        returncode=0, 
+        stdout="Generated code output", 
+        stderr=""
+    )
+    
+    client = CodexClient()
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "Test"}]
+    )
+    
+    # Verify subprocess was called correctly
+    mock_run.assert_called_once()
+    call_args = mock_run.call_args
+    cmd = call_args[0][0]
+    assert "codex" in cmd[0]
+    assert "exec" in cmd
+    assert "--model" in cmd
+    assert "gpt-4o" in cmd
+
+# Test error handling
+def test_error_handling():
+    from subprocess import CalledProcessError
+    
+    with patch("claif_cod.client.subprocess.run") as mock_run:
+        mock_run.side_effect = CalledProcessError(
+            returncode=1, 
+            cmd=["codex"], 
+            stderr="Model not available"
+        )
+        
+        client = CodexClient()
+        
+        with pytest.raises(RuntimeError) as exc_info:
+            client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": "Test"}]
+            )
+        
+        assert "Codex CLI error" in str(exc_info.value)
+        assert "Model not available" in str(exc_info.value)
 ```
 
 ### Code Quality

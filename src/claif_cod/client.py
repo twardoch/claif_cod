@@ -6,7 +6,7 @@ import subprocess
 import time
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from openai import NOT_GIVEN, NotGiven
 from openai.types import CompletionUsage
@@ -63,7 +63,7 @@ class ChatCompletions:
         # Extract the last user message as the prompt
         prompt = ""
         system_prompt = ""
-        
+
         for msg in messages:
             if isinstance(msg, dict):
                 role = msg["role"]
@@ -71,7 +71,7 @@ class ChatCompletions:
             else:
                 role = msg.role
                 content = msg.content
-                
+
             if role == "system":
                 system_prompt = content
             elif role == "user":
@@ -80,76 +80,70 @@ class ChatCompletions:
                 # For multi-turn conversations, append assistant responses
                 if prompt:
                     prompt = f"{prompt}\n\nAssistant: {content}\n\nHuman: "
-        
+
         # If system prompt exists, prepend it
         if system_prompt:
             prompt = f"{system_prompt}\n\n{prompt}"
-            
+
         # Build codex command
         cmd = [self.parent.codex_path, "exec"]  # Use 'exec' command for non-interactive
-        
+
         # Add model if specified
         if model:
             cmd.extend(["--model", model])
-            
-        # Add temperature if specified  
+
+        # Add temperature if specified
         if temperature is not NOT_GIVEN:
             cmd.extend(["--temperature", str(temperature)])
-            
+
         # Add sandbox mode
         cmd.extend(["--sandbox", self.parent.sandbox_mode])
-        
+
         # Add approval policy
         cmd.extend(["--ask-for-approval", self.parent.approval_policy])
-        
+
         # Add the prompt as the last argument
         cmd.append(prompt)
-        
+
         # Handle streaming
         if stream is True:
             return self._create_stream(cmd, model, timeout)
-        else:
-            return self._create_sync(cmd, model, timeout)
+        return self._create_sync(cmd, model, timeout)
 
     def _create_sync(self, cmd: list[str], model: str, timeout: float | NotGiven) -> ChatCompletion:
         """Create a synchronous chat completion."""
         use_timeout = self.parent.timeout if timeout is NOT_GIVEN else timeout
-        
+
         try:
             # Run codex CLI
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=use_timeout,
-                check=True,
-                cwd=self.parent.working_dir
+                cmd, capture_output=True, text=True, timeout=use_timeout, check=True, cwd=self.parent.working_dir
             )
-            
+
             # Extract response content
             content = result.stdout.strip()
-            
+
             # The new Rust codex might output structured data
             # For now, assume plain text output
-            
+
         except subprocess.TimeoutExpired:
-            raise TimeoutError(f"Codex CLI timed out after {use_timeout} seconds")
+            msg = f"Codex CLI timed out after {use_timeout} seconds"
+            raise TimeoutError(msg)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Codex CLI error: {e.stderr}")
+            msg = f"Codex CLI error: {e.stderr}"
+            raise RuntimeError(msg)
         except FileNotFoundError:
-            raise RuntimeError(
-                f"Codex CLI not found at {cmd[0]}. "
-                f"Please install the new Rust-based codex CLI."
-            )
-            
+            msg = f"Codex CLI not found at {cmd[0]}. Please install the new Rust-based codex CLI."
+            raise RuntimeError(msg)
+
         # Create ChatCompletion response
         timestamp = int(time.time())
         response_id = f"chatcmpl-{timestamp}{os.getpid()}"
-        
+
         # Estimate token counts (rough approximation)
         prompt_tokens = len(cmd[-1].split()) * 2  # Rough estimate
         completion_tokens = len(content.split()) * 2  # Rough estimate
-        
+
         return ChatCompletion(
             id=response_id,
             object="chat.completion",
@@ -173,22 +167,20 @@ class ChatCompletions:
             ),
         )
 
-    def _create_stream(
-        self, cmd: list[str], model: str, timeout: float | NotGiven
-    ) -> Iterator[ChatCompletionChunk]:
+    def _create_stream(self, cmd: list[str], model: str, timeout: float | NotGiven) -> Iterator[ChatCompletionChunk]:
         """Create a streaming chat completion using codex proto mode."""
         # For streaming, we might use 'codex proto' instead of 'codex exec'
         # Modify command to use proto mode
         proto_cmd = cmd.copy()
         proto_cmd[1] = "proto"  # Replace 'exec' with 'proto'
-        
+
         # For now, implement a simple non-streaming fallback
         # In a real implementation, this would parse the protocol stream
         response = self._create_sync(cmd, model, timeout)
-        
+
         timestamp = int(time.time())
         chunk_id = f"chatcmpl-{timestamp}{os.getpid()}"
-        
+
         # Initial chunk with role
         yield ChatCompletionChunk(
             id=chunk_id,
@@ -204,7 +196,7 @@ class ChatCompletions:
                 )
             ],
         )
-        
+
         # Content chunk
         yield ChatCompletionChunk(
             id=chunk_id,
@@ -220,7 +212,7 @@ class ChatCompletions:
                 )
             ],
         )
-        
+
         # Final chunk
         yield ChatCompletionChunk(
             id=chunk_id,
@@ -277,7 +269,7 @@ class CodexClient:
         self.default_model = model or os.getenv("CODEX_DEFAULT_MODEL", "gpt-4o")
         self.sandbox_mode = sandbox_mode or os.getenv("CODEX_SANDBOX_MODE", "workspace-write")
         self.approval_policy = approval_policy or os.getenv("CODEX_APPROVAL_POLICY", "on-failure")
-        
+
         # Set API key environment variable if provided
         if self.api_key:
             os.environ["OPENAI_API_KEY"] = self.api_key
