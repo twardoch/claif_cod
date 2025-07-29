@@ -1,509 +1,225 @@
-"""Fire-based CLI for Claif Codex wrapper."""
+# this_file: claif_cod/src/claif_cod/cli.py
+"""CLI interface for Codex with OpenAI-compatible API."""
 
-import asyncio
-import os
 import sys
-import time
-from pathlib import Path
-from typing import Any, List, Optional, Union
 
 import fire
-from claif.common import (
-    Config,
-    Message,
-    Provider,
-    ResponseMetrics,
-    format_metrics,
-    format_response,
-    load_config,
-)
-from claif.common.utils import _confirm, _print, _print_error, _print_success, _print_warning, _prompt, process_images
-from loguru import logger
 from rich.console import Console
-from rich.syntax import Syntax
-from rich.theme import Theme
+from rich.live import Live
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.spinner import Spinner
 
-from claif_cod.client import query
-from claif_cod.types import CodeBlock, CodexOptions, ErrorBlock, TextBlock
+from claif_cod.client import CodexClient
+
+console = Console()
 
 
-class CodexCLI:
-    """
-    Command-Line Interface (CLI) for interacting with the Claif Codex provider.
+class CLI:
+    """Command-line interface for Codex."""
 
-    This class provides a Fire-based interface to various Codex functionalities,
-    including querying, streaming, health checks, model listing, configuration
-    management, and installation/uninstallation of the Codex CLI.
-    """
-
-    def __init__(self, config_file: str | None = None, verbose: bool = False) -> None:
-        """
-        Initializes the CodexCLI instance.
+    def __init__(
+        self,
+        codex_path: str | None = None,
+        working_dir: str | None = None,
+        model: str | None = None,
+        sandbox: str | None = None,
+        approval: str | None = None,
+    ):
+        """Initialize CLI with optional parameters.
 
         Args:
-            config_file: Optional path to a configuration file.
-            verbose: If True, enables verbose logging for debugging purposes.
+            codex_path: Path to codex CLI binary
+            working_dir: Working directory for codex operations
+            model: Default model to use (e.g., "o4-mini", "o3")
+            sandbox: Sandbox policy (read-only, workspace-write, danger-full-access)
+            approval: Approval policy (untrusted, on-failure, never)
         """
-        self.config: Config = load_config(config_file)
-        if verbose:
-            self.config.verbose = True
-        logger.debug("Initialized Codex CLI")
+        self._client = CodexClient(
+            codex_path=codex_path,
+            working_dir=working_dir,
+            model=model,
+            sandbox_mode=sandbox,
+            approval_policy=approval,
+        )
 
     def query(
         self,
         prompt: str,
         model: str = "o4-mini",
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        top_p: float | None = None,
-        working_dir: str | None = None,
-        action_mode: str = "review",
-        auto_approve: bool = False,
-        full_auto: bool = False,
-        timeout: int | None = None,
-        output_format: str = "text",
-        show_metrics: bool = False,
-        images: str | None = None,
-        exec: str | None = None,
-        no_retry: bool = False,
-    ) -> None:
-        """
-        Executes a query to the Codex LLM and displays the response.
-
-        This method orchestrates the entire query process, including option parsing,
-        image processing, asynchronous execution, and result formatting.
+        stream: bool = False,
+        system: str | None = None,
+        json_output: bool = False,
+    ):
+        """Query Codex with a prompt.
 
         Args:
-            prompt: The textual prompt to send to the Codex model.
-            model: Optional. The specific Codex model to use (default: 'o4-mini').
-            temperature: Optional. Controls the randomness of the output (0.0 to 1.0).
-            max_tokens: Optional. Maximum number of tokens in the generated response.
-            top_p: Optional. Top-p sampling parameter for controlling diversity.
-            working_dir: Optional. The working directory for code execution by Codex.
-            action_mode: The action mode for Codex ('full-auto', 'interactive', or 'review').
-            auto_approve: If True, automatically approves all actions without user confirmation.
-            full_auto: If True, enables full automation mode for Codex (use with caution).
-            timeout: Optional. Maximum time in seconds to wait for a response.
-            output_format: The desired format for the output ('text', 'json', or 'code').
-            show_metrics: If True, displays performance metrics of the query.
-            images: Optional. A comma-separated string of local image paths or URLs.
-                    URLs will be downloaded to temporary files.
-            exec: Optional. Explicit path to the Codex CLI executable or a command
-                  (e.g., 'bun run'). If None, the executable is searched in PATH.
-            no_retry: If True, disables all retry attempts for the query.
+            prompt: The user prompt to send
+            model: Codex model name to use
+            stream: Whether to stream the response
+            system: Optional system message
+            json_output: Output raw JSON instead of formatted text
         """
-        # Process images if provided, converting comma-separated string to a list of paths.
-        image_paths: list[str] | None = None
-        if images:
-            image_paths = process_images(images)
-
-        # Create a CodexOptions object from the provided arguments and configuration.
-        options: CodexOptions = CodexOptions(
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=top_p,
-            working_dir=Path(working_dir) if working_dir else None,  # Convert string path to Path object
-            action_mode=action_mode,
-            auto_approve_everything=auto_approve,
-            full_auto=full_auto,
-            timeout=timeout,
-            verbose=self.config.verbose,  # Inherit verbose setting from CLI config
-            images=image_paths,
-            exec_path=exec,
-            no_retry=no_retry,
-        )
-
-        start_time: float = time.time()  # Record the start time for metrics calculation.
+        # Build messages
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
 
         try:
-            # Run the asynchronous query and collect all messages.
-            messages: list[Message] = asyncio.run(self._query_async(prompt, options))
-
-            # Iterate through the received messages and format/display them.
-            for message in messages:
-                if output_format == "code":
-                    # Special handling for code blocks, attempting to extract and display them.
-                    self._display_code_message(message)
-                else:
-                    # For other formats, use the generic format_response utility.
-                    formatted_output: str = format_response(message, output_format)
-                    _print(formatted_output)
-
-            # If requested, calculate and display response metrics.
-            if show_metrics:
-                duration: float = time.time() - start_time
-                metrics: ResponseMetrics = ResponseMetrics(
-                    duration=duration,
-                    provider=Provider.CODEX,
-                    model=model,
-                )
-                _print("\n" + format_metrics(metrics))
-
+            if stream:
+                self._stream_response(messages, model, json_output)
+            else:
+                self._sync_response(messages, model, json_output)
         except Exception as e:
-            # Catch any exceptions during the query process, print an error message,
-            # and exit with a non-zero status code to indicate failure.
-            _print_error(str(e))
-            if self.config.verbose:
-                # If verbose mode is enabled, print the full traceback for debugging.
-                logger.exception("Full error details for Codex query failure:")
+            console.print(f"[red]Error: {e}[/red]")
             sys.exit(1)
 
-    async def _query_async(self, prompt: str, options: CodexOptions) -> list[Message]:
-        """
-        Executes an asynchronous Codex query and collects all messages.
+    def _sync_response(self, messages: list, model: str, json_output: bool):
+        """Handle synchronous response."""
+        with console.status("[bold green]Running Codex...", spinner="dots"):
+            response = self._client.chat.completions.create(
+                model=model,
+                messages=messages,
+            )
 
-        Args:
-            prompt: The prompt to send to the Codex model.
-            options: Configuration options for the Codex query.
+        if json_output:
+            console.print_json(response.model_dump_json(indent=2))
+        else:
+            content = response.choices[0].message.content
+            console.print(
+                Panel(
+                    Markdown(content),
+                    title=f"[bold blue]Codex Response[/bold blue] (Model: {response.model})",
+                    border_style="blue",
+                )
+            )
 
-        Returns:
-            A list of Message objects received from the Codex CLI.
-        """
-        messages: list[Message] = []
-        async for message in query(prompt, options):
-            messages.append(message)
-        return messages
+    def _stream_response(self, messages: list, model: str, json_output: bool):
+        """Handle streaming response."""
+        if json_output:
+            # Stream JSON chunks
+            for chunk in self._client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=True,
+            ):
+                console.print_json(chunk.model_dump_json())
+        else:
+            # Stream formatted text
+            content = ""
+            with Live(
+                Panel(
+                    Spinner("dots", text="Waiting for response..."),
+                    title="[bold blue]Codex Response[/bold blue]",
+                    border_style="blue",
+                ),
+                refresh_per_second=10,
+                console=console,
+            ) as live:
+                for chunk in self._client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    stream=True,
+                ):
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content += chunk.choices[0].delta.content
+                        live.update(
+                            Panel(
+                                Markdown(content),
+                                title=f"[bold blue]Codex Response[/bold blue] (Model: {model})",
+                                border_style="blue",
+                            )
+                        )
 
-    def _display_code_message(self, message: Message) -> None:
-        """
-        Displays a message, with special handling for code blocks using rich syntax highlighting.
-
-        Args:
-            message: The Message object to display. Expected to contain a list of ContentBlock.
-        """
-
-        if not isinstance(message.content, list):
-            # Fallback for unexpected content type, though message.content should be List[ContentBlock]
-            _print(str(message.content))
-            return
-
-        for block in message.content:
-            if isinstance(block, TextBlock):
-                _print(block.text)
-            elif isinstance(block, CodeBlock):
-                # Use rich.syntax.Syntax for beautiful code highlighting
-                syntax = Syntax(block.content, block.language, theme="monokai", line_numbers=True)
-                console.print(syntax)
-            elif isinstance(block, ErrorBlock):
-                _print_error(f"Codex Error: {block.error_message}")
-
-    def stream(
+    def exec(
         self,
         prompt: str,
         model: str = "o4-mini",
-        temperature: float | None = None,
+        sandbox: str | None = None,
+        approval: str | None = None,
         working_dir: str | None = None,
-        action_mode: str = "review",
-        auto_approve: bool = False,
-        exec: str | None = None,
-        no_retry: bool = False,
-    ) -> None:
-        """
-        Streams responses from the Codex LLM and displays them live.
-
-        This method is suitable for long-running queries where incremental
-        updates are desired.
+    ):
+        """Execute Codex non-interactively.
 
         Args:
-            prompt: The textual prompt to send to the Codex model.
-            model: Optional. The specific Codex model to use (default: 'o4-mini').
-            temperature: Optional. Controls the randomness of the output (0.0 to 1.0).
-            working_dir: Optional. The working directory for code execution by Codex.
-            action_mode: The action mode for Codex ('full-auto', 'interactive', or 'review').
-            auto_approve: If True, automatically approves all actions without user confirmation.
-            exec: Optional. Explicit path to the Codex CLI executable or a command.
-            no_retry: If True, disables all retry attempts for the query.
+            prompt: The prompt to execute
+            model: Model to use
+            sandbox: Override sandbox policy for this execution
+            approval: Override approval policy for this execution
+            working_dir: Override working directory for this execution
         """
-        options: CodexOptions = CodexOptions(
+        # Create a temporary client with overrides if provided
+        client = CodexClient(
+            codex_path=self._client.codex_path,
+            working_dir=working_dir or self._client.working_dir,
             model=model,
-            temperature=temperature,
-            working_dir=Path(working_dir) if working_dir else None,
-            action_mode=action_mode,
-            auto_approve_everything=auto_approve,
-            verbose=self.config.verbose,
-            exec_path=exec,
-            no_retry=no_retry,
+            sandbox_mode=sandbox or self._client.sandbox_mode,
+            approval_policy=approval or self._client.approval_policy,
         )
 
         try:
-            asyncio.run(self._stream_async(prompt, options))
-        except KeyboardInterrupt:
-            _print_warning("Stream interrupted by user.")
-        except Exception as e:
-            _print_error(str(e))
-            if self.config.verbose:
-                logger.exception("Full error details for Codex stream failure:")
-            sys.exit(1)
-
-    async def _stream_async(self, prompt: str, options: CodexOptions) -> None:
-        """
-        Asynchronously streams responses from the Codex CLI and prints them.
-
-        Args:
-            prompt: The prompt to send to the Codex model.
-            options: Configuration options for the Codex query.
-        """
-
-        async for message in query(prompt, options):
-            if not isinstance(message.content, list):
-                _print(str(message.content))
-                continue
-
-            for block in message.content:
-                if isinstance(block, TextBlock):
-                    _print(block.text)
-                elif isinstance(block, CodeBlock):
-                    syntax = Syntax(block.content, block.language, theme="monokai", line_numbers=True)
-                    console.print(syntax)
-                elif isinstance(block, ErrorBlock):
-                    _print_error(f"Codex Error: {block.error_message}")
-            # Add a newline after each message for better readability in stream mode
-            _print("")
-
-    def models(self) -> None:
-        """List available Codex models."""
-        _print("Available Codex Models:")
-
-        models = [
-            ("o4-mini", "Optimized for speed and efficiency (default)"),
-            ("o4", "Balanced performance and capability"),
-            ("o4-preview", "Latest features, may be unstable"),
-            ("o3.5", "Previous generation, stable"),
-        ]
-
-        for model, desc in models:
-            _print(f"  • {model}: {desc}")
-
-    def health(self) -> None:
-        """Check Codex service health."""
-        try:
-            _print("Checking Codex health...")
-
-            # Simple health check
-            result = asyncio.run(self._health_check())
-
-            if result:
-                _print_success("Codex service is healthy")
-            else:
-                _print_error("Codex service is not responding")
-                sys.exit(1)
-
-        except Exception as e:
-            _print_error(f"Health check failed: {e}")
-            sys.exit(1)
-
-    async def _health_check(self) -> bool:
-        """Perform health check."""
-        try:
-            options = CodexOptions(
-                timeout=10,
-                max_tokens=10,
-                action_mode="review",
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
             )
-            message_count = 0
+            content = response.choices[0].message.content
+            console.print(content)
+        except Exception as e:
+            console.print(f"[red]Error: {e}[/red]")
+            sys.exit(1)
 
-            async for _ in query("Hello", options):
-                message_count += 1
-                if message_count > 0:
-                    return True
-
-            return message_count > 0
-        except Exception:
-            return False
-
-    def config(self, action: str = "show", **kwargs) -> None:
-        """Manage Codex configuration.
+    def models(self, json_output: bool = False):
+        """List available Codex models.
 
         Args:
-            action: Action to perform (show, set)
-            **kwargs: Configuration values for 'set' action
+            json_output: Output as JSON instead of formatted table
         """
-        if action == "show":
-            _print("Codex Configuration:")
-            codex_config = self.config.providers.get(Provider.CODEX, {})
-
-            if isinstance(codex_config, dict):
-                for key, value in codex_config.items():
-                    _print(f"  {key}: {value}")
-            else:
-                _print(f"  enabled: {codex_config.enabled}")
-                _print(f"  model: {codex_config.model}")
-                _print(f"  timeout: {codex_config.timeout}")
-
-            # Show environment variables
-            _print("\nEnvironment:")
-            codex_path = os.environ.get("CODEX_CLI_PATH", "Not set")
-            _print(f"  CODEX_CLI_PATH: {codex_path}")
-
-        elif action == "set":
-            if not kwargs:
-                _print_error("No configuration values provided")
-                return
-
-            # Update configuration
-            for key, value in kwargs.items():
-                _print_success(f"Set {key} = {value}")
-
-            msg = "Note: Configuration changes are temporary. Update config file for persistence."
-            _print_warning(msg)
-
-        else:
-            _print_error(f"Unknown action: {action}")
-            _print("Available actions: show, set")
-
-    def modes(self) -> None:
-        """Show available action modes."""
-        _print("Codex Action Modes:")
-
-        modes = [
-            ("review", "Review each action before execution (default)"),
-            ("interactive", "Interactive mode with prompts"),
-            ("full-auto", "Fully automatic execution (use with caution)"),
+        models = [
+            {"id": "o3", "name": "O3", "description": "Most capable model"},
+            {"id": "o4", "name": "O4", "description": "Advanced reasoning model"},
+            {"id": "o4-mini", "name": "O4 Mini", "description": "Fast reasoning model"},
         ]
 
-        for mode, desc in modes:
-            _print(f"  • {mode}: {desc}")
-
-        _print("\nTip: Use --action-mode <mode> to set the mode")
-
-    def benchmark(
-        self,
-        prompt: str = "What is 2+2?",
-        iterations: int = 5,
-        model: str = "o4-mini",
-    ) -> None:
-        """Benchmark Codex performance.
-
-        Args:
-            prompt: Prompt to use for benchmarking
-            iterations: Number of iterations
-            model: Model to benchmark
-        """
-        _print("Benchmarking Codex")
-        _print(f"Prompt: {prompt}")
-        _print(f"Iterations: {iterations}")
-        _print(f"Model: {model}")
-        _print("")
-
-        times = []
-        options = CodexOptions(model=model, timeout=30)
-
-        for i in range(iterations):
-            _print(f"Running iteration {i + 1}/{iterations}...")
-            start = time.time()
-            try:
-                asyncio.run(self._benchmark_iteration(prompt, options))
-                duration = time.time() - start
-                times.append(duration)
-                _print(f"  Completed in {duration:.3f}s")
-            except Exception as e:
-                _print_error(f"Iteration {i + 1} failed: {e}")
-
-        if times:
-            avg_time = sum(times) / len(times)
-            min_time = min(times)
-            max_time = max(times)
-
-            _print("\nResults:")
-            _print(f"Average: {avg_time:.3f}s")
-            _print(f"Min: {min_time:.3f}s")
-            _print(f"Max: {max_time:.3f}s")
+        if json_output:
+            console.print_json(data=models)
         else:
-            _print_error("No successful iterations")
+            from rich.table import Table
 
-    async def _benchmark_iteration(self, prompt: str, options: CodexOptions) -> None:
-        """Run a single benchmark iteration."""
-        message_count = 0
-        async for _ in query(prompt, options):
-            message_count += 1
-        if message_count == 0:
-            msg = "No response received"
-            raise Exception(msg)
+            table = Table(title="Available Codex Models")
+            table.add_column("Model ID", style="cyan")
+            table.add_column("Name", style="green")
+            table.add_column("Description", style="yellow")
 
-    def install(self) -> None:
-        """Install Codex provider (npm package + bundling + installation).
+            for model in models:
+                table.add_row(model["id"], model["name"], model["description"])
 
-        This will:
-        1. Install bun if not available
-        2. Install the latest @openai/codex package
-        3. Bundle it into a standalone executable
-        4. Install the executable to ~/.local/bin (or equivalent)
-        """
-        from claif_cod.install import install_codex
+            console.print(table)
 
-        _print("Installing Codex provider...")
-        result = install_codex()
+    def config(self):
+        """Show current Codex configuration."""
+        from rich.table import Table
 
-        if result["installed"]:
-            _print_success("Codex provider installed successfully!")
-            _print_success("You can now use the 'codex' command from anywhere")
-        else:
-            error_msg = result.get("message", "Unknown error")
-            _print_error(f"Failed to install Codex provider: {error_msg}")
-            if result.get("failed"):
-                failed_str = ", ".join(result["failed"])
-                _print_error(f"Failed components: {failed_str}")
-            sys.exit(1)
+        table = Table(title="Codex Configuration")
+        table.add_column("Setting", style="cyan")
+        table.add_column("Value", style="green")
 
-    def uninstall(self) -> None:
-        """Uninstall Codex provider (remove bundled executable).
+        table.add_row("Codex Path", self._client.codex_path)
+        table.add_row("Working Directory", self._client.working_dir)
+        table.add_row("Default Model", self._client.default_model)
+        table.add_row("Sandbox Mode", self._client.sandbox_mode)
+        table.add_row("Approval Policy", self._client.approval_policy)
+        table.add_row("Timeout", f"{self._client.timeout}s")
 
-        This will remove the bundled Codex executable from the install
-        directory.
-        """
-        from claif_cod.install import uninstall_codex
+        console.print(table)
 
-        _print("Uninstalling Codex provider...")
-        result = uninstall_codex()
+    def version(self):
+        """Show version information."""
+        from claif_cod._version import __version__
 
-        if result["uninstalled"]:
-            _print_success("Codex provider uninstalled successfully!")
-        else:
-            error_msg = result.get("message", "Unknown error")
-            _print_error(f"Failed to uninstall Codex provider: {error_msg}")
-            if result.get("failed"):
-                failed_str = ", ".join(result["failed"])
-                _print_error(f"Failed components: {failed_str}")
-            sys.exit(1)
-
-    def status(self) -> None:
-        """Show Codex provider installation status."""
-        from claif.common.install import find_executable, get_install_dir
-
-        _print("Codex Provider Status")
-        _print("")
-
-        # Check bundled executable
-        install_dir = get_install_dir()
-        bundled_path = install_dir / "codex"
-
-        if bundled_path.exists():
-            _print_success(f"Bundled executable: {bundled_path}")
-        else:
-            _print_warning("Bundled executable: Not installed")
-
-        # Check external executable
-        try:
-            external_path = find_executable("codex")
-            _print_success(f"Found executable: {external_path}")
-        except Exception:
-            _print_error("No external codex executable found")
-
-        # Show install directory in PATH status
-        path_env = os.environ.get("PATH", "")
-        if str(install_dir) in path_env:
-            _print_success("Install directory in PATH")
-        else:
-            _print_warning(f"Install directory not in PATH: {install_dir}")
-            path_cmd = 'export PATH="$HOME/.local/bin:$PATH"'
-            _print(f"  Add to PATH with: {path_cmd}")
+        console.print(f"claif-cod version {__version__}")
 
 
 def main():
-    """Main entry point for Fire CLI."""
-    fire.Fire(CodexCLI)
-
-
-if __name__ == "__main__":
-    main()
+    """Main entry point for the CLI."""
+    fire.Fire(CLI)

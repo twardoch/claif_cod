@@ -326,23 +326,18 @@ class TestCodexOptionsAdvanced:
     def test_path_object_support(self):
         """Test CodexOptions with Path objects."""
         from pathlib import Path
-        
+
         working_path = Path("/work/directory")
         cwd_path = Path("/current/directory")
-        
+
         options = CodexOptions(working_dir=working_path, cwd=cwd_path)
         assert options.working_dir == working_path
         assert options.cwd == cwd_path
 
     def test_boolean_options(self):
         """Test all boolean options."""
-        options = CodexOptions(
-            auto_approve_everything=True,
-            full_auto=True,
-            verbose=True,
-            no_retry=True
-        )
-        
+        options = CodexOptions(auto_approve_everything=True, full_auto=True, verbose=True, no_retry=True)
+
         assert options.auto_approve_everything is True
         assert options.full_auto is True
         assert options.verbose is True
@@ -350,15 +345,8 @@ class TestCodexOptionsAdvanced:
 
     def test_numeric_options(self):
         """Test numeric options with edge cases."""
-        options = CodexOptions(
-            temperature=0.0,
-            max_tokens=1,
-            top_p=1.0,
-            timeout=0,
-            retry_count=0,
-            retry_delay=0.0
-        )
-        
+        options = CodexOptions(temperature=0.0, max_tokens=1, top_p=1.0, timeout=0, retry_count=0, retry_delay=0.0)
+
         assert options.temperature == 0.0
         assert options.max_tokens == 1
         assert options.top_p == 1.0
@@ -370,18 +358,14 @@ class TestCodexOptionsAdvanced:
         """Test list options."""
         images = ["/path/to/image1.png", "/path/to/image2.jpg"]
         options = CodexOptions(images=images)
-        
+
         assert options.images == images
         assert len(options.images) == 2
 
     def test_string_options(self):
         """Test string options."""
-        options = CodexOptions(
-            model="custom-model",
-            action_mode="interactive",
-            exec_path="/custom/path/to/codex"
-        )
-        
+        options = CodexOptions(model="custom-model", action_mode="interactive", exec_path="/custom/path/to/codex")
+
         assert options.model == "custom-model"
         assert options.action_mode == "interactive"
         assert options.exec_path == "/custom/path/to/codex"
@@ -392,11 +376,8 @@ class TestCodexMessageAdvanced:
 
     def test_message_with_single_content_block(self):
         """Test message with single content block."""
-        msg = CodexMessage(
-            role="assistant",
-            content=[TextBlock(text="Single block")]
-        )
-        
+        msg = CodexMessage(role="assistant", content=[TextBlock(text="Single block")])
+
         claif_msg = msg.to_claif_message()
         assert claif_msg.role == MessageRole.ASSISTANT
         assert len(claif_msg.content) == 1
@@ -404,33 +385,24 @@ class TestCodexMessageAdvanced:
 
     def test_message_with_code_block_no_language(self):
         """Test message with code block that has no language."""
-        msg = CodexMessage(
-            role="assistant",
-            content=[CodeBlock(language="", content="some code")]
-        )
-        
+        msg = CodexMessage(role="assistant", content=[CodeBlock(language="", content="some code")])
+
         claif_msg = msg.to_claif_message()
         assert "``` \nsome code\n```" in claif_msg.content[0].text
 
     def test_message_with_code_block_multiline(self):
         """Test message with multi-line code block."""
         code_content = "def hello():\n    print('Hello')\n    return 'world'"
-        msg = CodexMessage(
-            role="assistant",
-            content=[CodeBlock(language="python", content=code_content)]
-        )
-        
+        msg = CodexMessage(role="assistant", content=[CodeBlock(language="python", content=code_content)])
+
         claif_msg = msg.to_claif_message()
         expected = f"```python\n{code_content}\n```"
         assert claif_msg.content[0].text == expected
 
     def test_message_with_error_block_empty_message(self):
         """Test message with error block that has empty message."""
-        msg = CodexMessage(
-            role="assistant",
-            content=[ErrorBlock(error_message="")]
-        )
-        
+        msg = CodexMessage(role="assistant", content=[ErrorBlock(error_message="")])
+
         claif_msg = msg.to_claif_message()
         assert claif_msg.content[0].text == "Error: "
 
@@ -444,10 +416,10 @@ class TestCodexMessageAdvanced:
                 TextBlock(text="Result calculated."),
                 ErrorBlock(error_message="Warning: deprecated API"),
                 CodeBlock(language="bash", content="echo 'done'"),
-                TextBlock(text="Process complete.")
-            ]
+                TextBlock(text="Process complete."),
+            ],
         )
-        
+
         claif_msg = msg.to_claif_message()
         expected_parts = [
             "Here's the analysis:",
@@ -455,7 +427,7 @@ class TestCodexMessageAdvanced:
             "Result calculated.",
             "Error: Warning: deprecated API",
             "```bash\necho 'done'\n```",
-            "Process complete."
+            "Process complete.",
         ]
         expected = "\n".join(expected_parts)
         assert claif_msg.content[0].text == expected
@@ -465,15 +437,15 @@ class TestCodexMessageAdvanced:
         # Test assistant role
         msg1 = CodexMessage(role="assistant", content=[TextBlock(text="Assistant")])
         assert msg1.to_claif_message().role == MessageRole.ASSISTANT
-        
-        # Test user role 
+
+        # Test user role
         msg2 = CodexMessage(role="user", content=[TextBlock(text="User")])
         assert msg2.to_claif_message().role == MessageRole.USER
-        
+
         # Test unknown role (should default to USER)
         msg3 = CodexMessage(role="system", content=[TextBlock(text="System")])
         assert msg3.to_claif_message().role == MessageRole.USER
-        
+
         # Test empty role (should default to USER)
         msg4 = CodexMessage(role="", content=[TextBlock(text="Empty")])
         assert msg4.to_claif_message().role == MessageRole.USER
@@ -484,18 +456,10 @@ class TestCodexResponseAdvanced:
 
     def test_response_with_complex_usage(self):
         """Test response with complex usage data."""
-        usage_data = {
-            "prompt_tokens": 50,
-            "completion_tokens": 100,
-            "total_tokens": 150,
-            "model": "o4-mini"
-        }
-        
-        response = CodexResponse(
-            content="Complex response",
-            usage=usage_data
-        )
-        
+        usage_data = {"prompt_tokens": 50, "completion_tokens": 100, "total_tokens": 150, "model": "o4-mini"}
+
+        response = CodexResponse(content="Complex response", usage=usage_data)
+
         assert response.usage == usage_data
         assert response.usage["prompt_tokens"] == 50
         assert response.usage["completion_tokens"] == 100
@@ -506,14 +470,11 @@ class TestCodexResponseAdvanced:
             "id": "chatcmpl-123",
             "object": "chat.completion",
             "created": 1677652288,
-            "choices": [{"message": {"content": "Hello"}}]
+            "choices": [{"message": {"content": "Hello"}}],
         }
-        
-        response = CodexResponse(
-            content="Hello",
-            raw_response=raw_data
-        )
-        
+
+        response = CodexResponse(content="Hello", raw_response=raw_data)
+
         assert response.raw_response == raw_data
         assert response.raw_response["id"] == "chatcmpl-123"
 
@@ -522,11 +483,11 @@ class TestCodexResponseAdvanced:
         # Test assistant role
         response1 = CodexResponse(content="Assistant", role="assistant")
         assert response1.to_claif_message().role == MessageRole.ASSISTANT
-        
+
         # Test user role
         response2 = CodexResponse(content="User", role="user")
         assert response2.to_claif_message().role == MessageRole.USER
-        
+
         # Test unknown role defaults to USER
         response3 = CodexResponse(content="System", role="system")
         assert response3.to_claif_message().role == MessageRole.USER
@@ -557,9 +518,9 @@ class TestResultMessageAdvanced:
             message="Custom error message",
             session_id="session-789",
             model="o4-turbo",
-            token_count=250
+            token_count=250,
         )
-        
+
         assert msg.type == "custom_result"
         assert msg.duration == 2.5
         assert msg.error is True
@@ -590,11 +551,7 @@ class TestResultMessageAdvanced:
 
     def test_result_message_empty_strings(self):
         """Test ResultMessage with empty string values."""
-        msg = ResultMessage(
-            message="",
-            session_id="",
-            model=""
-        )
+        msg = ResultMessage(message="", session_id="", model="")
         assert msg.message == ""
         assert msg.session_id == ""
         assert msg.model == ""
@@ -603,6 +560,6 @@ class TestResultMessageAdvanced:
         """Test ResultMessage with different boolean error states."""
         msg_success = ResultMessage(error=False)
         msg_error = ResultMessage(error=True)
-        
+
         assert msg_success.error is False
         assert msg_error.error is True

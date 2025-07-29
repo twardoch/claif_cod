@@ -1,26 +1,42 @@
 # claif_cod - Codex Provider for Claif
 
+A Claif provider for OpenAI's new Rust-based Codex CLI with full OpenAI client API compatibility. This package wraps the `codex` command-line tool to provide a consistent interface following the `client.chat.completions.create()` pattern.
+
+## Features
+
+- **OpenAI Client API Compatible**: Use the familiar `client.chat.completions.create()` pattern
+- **Full Type Safety**: Returns standard `ChatCompletion` and `ChatCompletionChunk` objects
+- **Streaming Support**: Real-time streaming with proper chunk handling
+- **New Rust-based Codex**: Support for the latest Rust-based codex CLI (not the old Node.js version)
+- **Sandbox Modes**: Control code execution with read-only, workspace-write, or full-access modes
+- **Approval Policies**: Fine-grained control with untrusted, on-failure, or never approval modes
+- **Fire-based CLI**: Rich terminal interface with multiple output formats
+
 ## Quickstart
 
 ```bash
-# Install and start using Codex
+# Install
 pip install claif_cod
+
+# Basic usage - OpenAI compatible
+python -c "
+from claif_cod import CodexClient
+client = CodexClient()
+response = client.chat.completions.create(
+    messages=[{'role': 'user', 'content': 'Write a fibonacci function'}],
+    model='gpt-4o'
+)
+print(response.choices[0].message.content)
+"
+
+# CLI usage
 claif-cod query "Write a Python fibonacci function"
-
-# Or use it with the Claif framework
-pip install claif[all]
-claif query "Refactor this code for better performance" --provider codex
-
-# Stream responses with live display
-claif-cod stream "Create a REST API with FastAPI"
-
-# Choose action mode for code safety
-claif-cod query "Fix all bugs" --action-mode review  # Preview changes first
+claif-cod exec "Fix the bug" --sandbox workspace-write
 ```
 
 ## What is claif_cod?
 
-`claif_cod` is an async Python wrapper that integrates OpenAI's Codex CLI into the Claif framework. It provides a subprocess-based transport layer that communicates with the Codex CLI through JSON streaming, enabling AI-powered code generation, refactoring, and manipulation with multiple safety modes.
+`claif_cod` is a Python wrapper that integrates OpenAI's new Rust-based Codex CLI into the Claif framework with full OpenAI client API compatibility. It provides a subprocess-based interface that communicates with the Codex CLI, enabling AI-powered code generation with multiple safety modes.
 
 **Key Features:**
 - **Async subprocess management** - Efficient streaming with native asyncio
@@ -35,17 +51,20 @@ claif-cod query "Fix all bugs" --action-mode review  # Preview changes first
 
 ### Prerequisites
 
-You need the Codex CLI binary installed. Set the path via environment variable:
+You need the new Rust-based Codex CLI installed. The old Node.js version is no longer supported.
 
 ```bash
-export CODEX_CLI_PATH=/path/to/codex-cli
+# Install the Rust-based codex CLI
+cargo install codex
+
+# Or download from GitHub releases
+# https://github.com/openai/codex/releases
+
+# Set the path if not in PATH
+export CODEX_CLI_PATH=/path/to/codex
 ```
 
-Or install it via npm:
-
-```bash
-npm install -g @openai/codex
-```
+**Note**: If you have the old Node.js codex installed, you'll get a warning to upgrade.
 
 ### Basic Installation
 
@@ -68,36 +87,72 @@ pip install -e ".[dev,test]"
 uv pip install -e ".[dev,test]"
 ```
 
-## CLI Usage
+## Usage
 
-`claif_cod` provides a Fire-based CLI with rich terminal output for all your code generation needs.
+### Basic Usage (OpenAI-Compatible)
 
-### Basic Commands
+```python
+from claif_cod import CodexClient
 
-```bash
-# Simple code generation
-claif-cod query "Write a sorting algorithm in Python"
+# Initialize the client
+client = CodexClient(
+    api_key="your-api-key",  # Optional, uses OPENAI_API_KEY env var
+    codex_path="/path/to/codex",  # Optional, auto-discovers
+    sandbox_mode="workspace-write",  # Control file system access
+    approval_policy="on-failure"  # Control approval prompts
+)
 
-# Use specific model
-claif-cod query "Optimize this database query" --model o4
+# Create a chat completion - exactly like OpenAI
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "system", "content": "You are a helpful coding assistant"},
+        {"role": "user", "content": "Write a binary search function"}
+    ],
+    temperature=0.2
+)
 
-# Set parameters
-claif-cod query "Add error handling" --temperature 0.2 --max-tokens 2000
-
-# With system prompt
-claif-cod query "Convert to TypeScript" --system "You are a TypeScript expert"
+# Access the response
+print(response.choices[0].message.content)
+print(f"Model: {response.model}")
 ```
 
-### Action Modes
+### Streaming Responses
 
-Control how code changes are applied to ensure safety:
+```python
+from claif_cod import CodexClient
+
+client = CodexClient()
+
+# Stream responses in real-time
+stream = client.chat.completions.create(
+    model="o1-preview",
+    messages=[
+        {"role": "user", "content": "Create a REST API with FastAPI"}
+    ],
+    stream=True
+)
+
+# Process streaming chunks
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)
+```
+
+## CLI Usage
 
 ```bash
-# Review mode (default) - Preview all changes before applying
-claif-cod query "Fix the bug in main.py" --action-mode review
+# Basic query
+claif-cod query "Write a sorting algorithm in Python"
 
-# Interactive mode - Approve each change individually
-claif-cod query "Update all docstrings" --action-mode interactive
+# With specific model
+claif-cod query "Optimize this database query" --model o3
+
+# Execute with sandbox control
+claif-cod exec "Fix the bug" --sandbox read-only --approval never
+
+# Interactive mode
+claif-cod chat --model gpt-4o
 
 # Full-auto mode - Apply all changes automatically (use with caution!)
 claif-cod query "Format all files" --action-mode full-auto --auto-approve
@@ -294,6 +349,70 @@ async def use_with_claif():
 
 asyncio.run(use_with_claif())
 ```
+
+## API Compatibility
+
+This package is fully compatible with the OpenAI Python client API:
+
+```python
+# You can use it as a drop-in replacement
+from claif_cod import CodexClient as OpenAI
+
+client = OpenAI()
+# Now use exactly like the OpenAI client
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+## Migration Guide
+
+### From Old Node.js Codex to New Rust-based Codex
+
+The old Node.js-based codex tool is no longer supported. This package now exclusively uses the new Rust-based codex CLI.
+
+```bash
+# Old (no longer supported)
+npm install -g @openai/codex  # ❌ Don't use this
+
+# New (required)
+cargo install codex  # ✅ Use this
+```
+
+### From Old Async API to OpenAI-Compatible API
+
+If you were using the old async-based Claif API:
+
+```python
+# Old API (deprecated)
+import asyncio
+from claif_cod import query
+
+async def old_way():
+    async for message in query("Write a function"):
+        print(message.content)
+    
+# New API (OpenAI-compatible)
+from claif_cod import CodexClient
+
+def new_way():
+    client = CodexClient()
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": "Write a function"}],
+        model="gpt-4o"
+    )
+    print(response.choices[0].message.content)
+```
+
+### Key Changes
+
+1. **Synchronous by default**: No more `async/await` for basic usage
+2. **OpenAI-compatible structure**: `client.chat.completions.create()` pattern
+3. **Standard message format**: `[{"role": "user", "content": "..."}]`
+4. **Streaming support**: Use `stream=True` for real-time responses
+5. **Type-safe responses**: Returns `ChatCompletion` objects from OpenAI types
+6. **New models**: Use `gpt-4o`, `o1-preview`, `o3` instead of old model names
 
 ## How It Works
 

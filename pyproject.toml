@@ -11,20 +11,20 @@
 #------------------------------------------------------------------------------
 [project]
 name = 'claif_cod' # Package name on PyPI
-description = 'Codex provider for Claif - AI-powered code generation and manipulation through OpenAI Codex CLI' # Short description
+description = 'A Claif provider for the Rust-based Codex CLI, compatible with the OpenAI Responses API.' # Short description
 readme = 'README.md' # Path to README file
 requires-python = '>=3.11' # Minimum Python version
 keywords = [
-    'ai',
-    'cli',
+    'claif',
     'codex',
     'openai',
-    'code-generation',
-    'refactoring',
-    'automation',
-    'claif',
+    'ai',
     'llm',
-    'assistant',
+    'cli',
+    'command-line',
+    'artificial-intelligence',
+    'rust',
+    'responses-api',
 ] # Keywords for PyPI search
 dynamic = ["version"] # Fields set dynamically at build time
 
@@ -43,20 +43,11 @@ classifiers = [
 
 dependencies = [
     "claif>=1.0.0",
-    "anyio>=4.0.0",
+    "openai>=1.0.0",
     "fire>=0.7.0",
     "rich>=13.0.0",
     "loguru>=0.7.0",
     "tenacity>=9.0.0",
-    "hatchling>=1.27.0",
-    "hatch-vcs>=0.5.0",
-    "build>=1.2.2.post1",
-    "pytest>=8.4.1",
-    "pytest-cov>=6.2.1",
-    "pytest-asyncio>=1.1.0",
-    "twine>=6.1.0",
-    "mypy>=1.17.0",
-    "ruff>=0.12.4",
 ]
 
 # Author information

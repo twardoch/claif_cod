@@ -1,8 +1,7 @@
 """Test suite for claif_cod CLI."""
 
 import json
-from io import StringIO
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from claif.common import Message, MessageRole
@@ -327,12 +326,9 @@ class TestMainFunctions:
     async def test_display_code_message_with_text_block(self, cli):
         """Test _display_code_message with TextBlock."""
         from claif_cod.types import TextBlock
-        
-        message = Message(
-            role=MessageRole.ASSISTANT,
-            content=[TextBlock(text="Hello world")]
-        )
-        
+
+        message = Message(role=MessageRole.ASSISTANT, content=[TextBlock(text="Hello world")])
+
         with patch("claif_cod.cli._print") as mock_print:
             cli._display_code_message(message)
             mock_print.assert_called_once_with("Hello world")
@@ -341,30 +337,24 @@ class TestMainFunctions:
     async def test_display_code_message_with_code_block(self, cli):
         """Test _display_code_message with CodeBlock."""
         from claif_cod.types import CodeBlock
-        
-        message = Message(
-            role=MessageRole.ASSISTANT,
-            content=[CodeBlock(language="python", content="print('hello')")]
-        )
-        
+
+        message = Message(role=MessageRole.ASSISTANT, content=[CodeBlock(language="python", content="print('hello')")])
+
         with patch("claif_cod.cli.console") as mock_console:
             cli._display_code_message(message)
             mock_console.print.assert_called_once()
             # Verify Syntax object was created
             call_args = mock_console.print.call_args[0][0]
-            assert hasattr(call_args, 'code')
+            assert hasattr(call_args, "code")
             assert call_args.code == "print('hello')"
 
     @pytest.mark.asyncio
     async def test_display_code_message_with_error_block(self, cli):
         """Test _display_code_message with ErrorBlock."""
         from claif_cod.types import ErrorBlock
-        
-        message = Message(
-            role=MessageRole.ASSISTANT,
-            content=[ErrorBlock(error_message="Something went wrong")]
-        )
-        
+
+        message = Message(role=MessageRole.ASSISTANT, content=[ErrorBlock(error_message="Something went wrong")])
+
         with patch("claif_cod.cli._print_error") as mock_print_error:
             cli._display_code_message(message)
             mock_print_error.assert_called_once_with("Codex Error: Something went wrong")
@@ -372,22 +362,22 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_display_code_message_with_mixed_blocks(self, cli):
         """Test _display_code_message with mixed content blocks."""
-        from claif_cod.types import TextBlock, CodeBlock, ErrorBlock
-        
+        from claif_cod.types import CodeBlock, ErrorBlock, TextBlock
+
         message = Message(
             role=MessageRole.ASSISTANT,
             content=[
                 TextBlock(text="Here's the code:"),
                 CodeBlock(language="python", content="print('hello')"),
-                ErrorBlock(error_message="Warning: deprecated function")
-            ]
+                ErrorBlock(error_message="Warning: deprecated function"),
+            ],
         )
-        
+
         with patch("claif_cod.cli._print") as mock_print:
             with patch("claif_cod.cli._print_error") as mock_print_error:
                 with patch("claif_cod.cli.console") as mock_console:
                     cli._display_code_message(message)
-                    
+
                     mock_print.assert_called_once_with("Here's the code:")
                     mock_console.print.assert_called_once()
                     mock_print_error.assert_called_once_with("Codex Error: Warning: deprecated function")
@@ -395,11 +385,8 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_display_code_message_with_non_list_content(self, cli):
         """Test _display_code_message with non-list content (fallback)."""
-        message = Message(
-            role=MessageRole.ASSISTANT,
-            content="Plain string content"
-        )
-        
+        message = Message(role=MessageRole.ASSISTANT, content="Plain string content")
+
         with patch("claif_cod.cli._print") as mock_print:
             cli._display_code_message(message)
             mock_print.assert_called_once_with("Plain string content")
@@ -407,15 +394,16 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_stream_basic_functionality(self, cli, mock_query):
         """Test basic stream functionality."""
+
         async def mock_query_impl(prompt, options):
             yield Message(role=MessageRole.ASSISTANT, content="Stream response 1")
             yield Message(role=MessageRole.ASSISTANT, content="Stream response 2")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print") as mock_print:
             await cli.stream("Test stream prompt")
-            
+
             # Should print each message plus newlines
             assert mock_print.call_count >= 2
             printed_messages = [call[0][0] for call in mock_print.call_args_list if call[0][0] != ""]
@@ -425,32 +413,28 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_stream_with_options(self, cli, mock_query):
         """Test stream with various options."""
+
         async def mock_query_impl(prompt, options):
             assert options.model == "o4"
             assert options.temperature == 0.7
             assert options.action_mode == "full-auto"
             assert options.auto_approve_everything is True
             yield Message(role=MessageRole.ASSISTANT, content="Response")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print"):
-            await cli.stream(
-                "Test",
-                model="o4",
-                temperature=0.7,
-                action_mode="full-auto",
-                auto_approve=True
-            )
+            await cli.stream("Test", model="o4", temperature=0.7, action_mode="full-auto", auto_approve=True)
 
     @pytest.mark.asyncio
     async def test_stream_keyboard_interrupt(self, cli, mock_query):
         """Test stream handling keyboard interrupt."""
+
         async def mock_query_impl(prompt, options):
-            raise KeyboardInterrupt()
-        
+            raise KeyboardInterrupt
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print_warning") as mock_warning:
             await cli.stream("Test")
             mock_warning.assert_called_once_with("Stream interrupted by user.")
@@ -458,11 +442,13 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_stream_exception_handling(self, cli, mock_query):
         """Test stream exception handling."""
+
         async def mock_query_impl(prompt, options):
-            raise Exception("Stream error")
-        
+            msg = "Stream error"
+            raise Exception(msg)
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print_error") as mock_error:
             with pytest.raises(SystemExit):
                 await cli.stream("Test")
@@ -471,20 +457,20 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_stream_async_implementation(self, cli, mock_query):
         """Test _stream_async implementation."""
-        from claif_cod.types import TextBlock, CodeBlock, ErrorBlock
-        
+        from claif_cod.types import CodeBlock, ErrorBlock, TextBlock
+
         async def mock_query_impl(prompt, options):
             yield Message(role=MessageRole.ASSISTANT, content=[TextBlock(text="Text")])
             yield Message(role=MessageRole.ASSISTANT, content=[CodeBlock(language="python", content="print('code')")])
             yield Message(role=MessageRole.ASSISTANT, content=[ErrorBlock(error_message="Error")])
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print") as mock_print:
             with patch("claif_cod.cli._print_error") as mock_print_error:
                 with patch("claif_cod.cli.console") as mock_console:
                     await cli._stream_async("Test", CodexOptions())
-                    
+
                     # Should print text, code, and error
                     assert mock_print.call_count >= 2  # Text + newlines
                     mock_console.print.assert_called_once()
@@ -493,14 +479,15 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_stream_async_with_non_list_content(self, cli, mock_query):
         """Test _stream_async with non-list content."""
+
         async def mock_query_impl(prompt, options):
             yield Message(role=MessageRole.ASSISTANT, content="Plain string")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print") as mock_print:
             await cli._stream_async("Test", CodexOptions())
-            
+
             # Should print the string content
             printed_calls = [call[0][0] for call in mock_print.call_args_list]
             assert "Plain string" in printed_calls
@@ -508,57 +495,55 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_health_check_implementation(self, cli, mock_query):
         """Test _health_check implementation."""
+
         async def mock_query_impl(prompt, options):
             # Verify health check uses proper settings
             assert options.timeout == 10
             assert options.max_tokens == 10
             assert options.action_mode == "review"
             yield Message(role=MessageRole.ASSISTANT, content="OK")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         result = await cli._health_check()
         assert result is True
 
     @pytest.mark.asyncio
     async def test_health_check_no_response(self, cli, mock_query):
         """Test _health_check with no response."""
+
         async def mock_query_impl(prompt, options):
             # Yield nothing
             return
             yield  # Make it a generator
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         result = await cli._health_check()
         assert result is False
 
     @pytest.mark.asyncio
     async def test_health_check_exception(self, cli, mock_query):
         """Test _health_check with exception."""
+
         async def mock_query_impl(prompt, options):
-            raise Exception("Health check failed")
-        
+            msg = "Health check failed"
+            raise Exception(msg)
+
         mock_query.side_effect = mock_query_impl
-        
+
         result = await cli._health_check()
         assert result is False
 
     def test_config_show_with_dict_config(self, cli):
         """Test config show with dictionary configuration."""
         # Mock config with dictionary provider config
-        cli.config.providers = {
-            "codex": {
-                "enabled": True,
-                "model": "o4-mini",
-                "timeout": 300
-            }
-        }
-        
+        cli.config.providers = {"codex": {"enabled": True, "model": "o4-mini", "timeout": 300}}
+
         with patch("claif_cod.cli._print") as mock_print:
             with patch("claif_cod.cli.os.environ.get", return_value="/path/to/codex"):
                 cli.config(action="show")
-                
+
                 # Should print configuration items
                 print_calls = [str(call[0][0]) for call in mock_print.call_args_list]
                 assert any("Codex Configuration:" in call for call in print_calls)
@@ -573,13 +558,13 @@ class TestMainFunctions:
         mock_config.enabled = True
         mock_config.model = "o4"
         mock_config.timeout = 120
-        
+
         cli.config.providers = {"codex": mock_config}
-        
+
         with patch("claif_cod.cli._print") as mock_print:
             with patch("claif_cod.cli.os.environ.get", return_value="Not set"):
                 cli.config(action="show")
-                
+
                 print_calls = [str(call[0][0]) for call in mock_print.call_args_list]
                 assert any("enabled: True" in call for call in print_calls)
                 assert any("model: o4" in call for call in print_calls)
@@ -593,17 +578,16 @@ class TestMainFunctions:
 
     def test_config_unknown_action(self, cli):
         """Test config with unknown action."""
-        with patch("claif_cod.cli._print_error") as mock_error:
-            with patch("claif_cod.cli._print") as mock_print:
-                cli.config(action="unknown")
-                mock_error.assert_called_once_with("Unknown action: unknown")
-                mock_print.assert_called_once_with("Available actions: show, set")
+        with patch("claif_cod.cli._print_error") as mock_error, patch("claif_cod.cli._print") as mock_print:
+            cli.config(action="unknown")
+            mock_error.assert_called_once_with("Unknown action: unknown")
+            mock_print.assert_called_once_with("Available actions: show, set")
 
     def test_uninstall_success(self, cli):
         """Test successful uninstall."""
         with patch("claif_cod.cli.uninstall_codex") as mock_uninstall:
             mock_uninstall.return_value = {"uninstalled": True}
-            
+
             with patch("claif_cod.cli._print_success") as mock_success:
                 cli.uninstall()
                 mock_success.assert_called_once_with("Codex provider uninstalled successfully!")
@@ -614,13 +598,13 @@ class TestMainFunctions:
             mock_uninstall.return_value = {
                 "uninstalled": False,
                 "message": "Uninstall failed",
-                "failed": ["component1", "component2"]
+                "failed": ["component1", "component2"],
             }
-            
+
             with patch("claif_cod.cli._print_error") as mock_error:
                 with pytest.raises(SystemExit):
                     cli.uninstall()
-                
+
                 mock_error.assert_any_call("Failed to uninstall Codex provider: Uninstall failed")
                 mock_error.assert_any_call("Failed components: component1, component2")
 
@@ -630,12 +614,12 @@ class TestMainFunctions:
             mock_install_dir = Mock()
             mock_install_dir.__truediv__ = lambda self, other: Mock(exists=lambda: True)
             mock_get_dir.return_value = mock_install_dir
-            
+
             with patch("claif_cod.cli.find_executable", return_value="/usr/bin/codex"):
                 with patch("claif_cod.cli._print_success") as mock_success:
                     with patch("claif_cod.cli.os.environ.get", return_value="/path/bin"):
                         cli.status()
-                        
+
                         # Should show success messages
                         success_calls = [str(call[0][0]) for call in mock_success.call_args_list]
                         assert any("Bundled executable:" in call for call in success_calls)
@@ -647,26 +631,27 @@ class TestMainFunctions:
             mock_install_dir = Mock()
             mock_install_dir.__truediv__ = lambda self, other: Mock(exists=lambda: False)
             mock_get_dir.return_value = mock_install_dir
-            
+
             with patch("claif_cod.cli.find_executable", side_effect=Exception("Not found")):
                 with patch("claif_cod.cli._print_warning") as mock_warning:
                     with patch("claif_cod.cli._print_error") as mock_error:
                         cli.status()
-                        
+
                         mock_warning.assert_called()
                         mock_error.assert_called()
 
     @pytest.mark.asyncio
     async def test_benchmark_success(self, cli, mock_query):
         """Test successful benchmark run."""
+
         async def mock_query_impl(prompt, options):
             yield Message(role=MessageRole.ASSISTANT, content="Benchmark response")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print") as mock_print:
             cli.benchmark(prompt="Test prompt", iterations=2, model="o4")
-            
+
             # Should print benchmark info and results
             print_calls = [str(call[0][0]) for call in mock_print.call_args_list]
             assert any("Benchmarking Codex" in call for call in print_calls)
@@ -679,76 +664,80 @@ class TestMainFunctions:
     async def test_benchmark_with_failures(self, cli, mock_query):
         """Test benchmark with some failures."""
         call_count = 0
-        
+
         async def mock_query_impl(prompt, options):
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise Exception("First iteration failed")
+                msg = "First iteration failed"
+                raise Exception(msg)
             yield Message(role=MessageRole.ASSISTANT, content="Success")
-        
+
         mock_query.side_effect = mock_query_impl
-        
-        with patch("claif_cod.cli._print") as mock_print:
-            with patch("claif_cod.cli._print_error") as mock_error:
-                cli.benchmark(iterations=2)
-                
-                # Should print error for failed iteration
-                mock_error.assert_called()
-                error_calls = [str(call[0][0]) for call in mock_error.call_args_list]
-                assert any("failed" in call for call in error_calls)
+
+        with patch("claif_cod.cli._print"), patch("claif_cod.cli._print_error") as mock_error:
+            cli.benchmark(iterations=2)
+
+            # Should print error for failed iteration
+            mock_error.assert_called()
+            error_calls = [str(call[0][0]) for call in mock_error.call_args_list]
+            assert any("failed" in call for call in error_calls)
 
     @pytest.mark.asyncio
     async def test_benchmark_all_failures(self, cli, mock_query):
         """Test benchmark when all iterations fail."""
+
         async def mock_query_impl(prompt, options):
-            raise Exception("All iterations failed")
-        
+            msg = "All iterations failed"
+            raise Exception(msg)
+
         mock_query.side_effect = mock_query_impl
-        
-        with patch("claif_cod.cli._print") as mock_print:
-            with patch("claif_cod.cli._print_error") as mock_error:
-                cli.benchmark(iterations=2)
-                
-                # Should print "No successful iterations"
-                print_calls = [str(call[0][0]) for call in mock_print.call_args_list]
-                assert any("No successful iterations" in call for call in print_calls)
+
+        with patch("claif_cod.cli._print") as mock_print, patch("claif_cod.cli._print_error"):
+            cli.benchmark(iterations=2)
+
+            # Should print "No successful iterations"
+            print_calls = [str(call[0][0]) for call in mock_print.call_args_list]
+            assert any("No successful iterations" in call for call in print_calls)
 
     @pytest.mark.asyncio
     async def test_benchmark_iteration_implementation(self, cli, mock_query):
         """Test _benchmark_iteration implementation."""
+
         async def mock_query_impl(prompt, options):
             yield Message(role=MessageRole.ASSISTANT, content="Benchmark result")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         # Should not raise exception
         await cli._benchmark_iteration("Test", CodexOptions())
 
     @pytest.mark.asyncio
     async def test_benchmark_iteration_no_response(self, cli, mock_query):
         """Test _benchmark_iteration with no response."""
+
         async def mock_query_impl(prompt, options):
             # Yield nothing
             return
             yield  # Make it a generator
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with pytest.raises(Exception, match="No response received"):
             await cli._benchmark_iteration("Test", CodexOptions())
 
     @pytest.mark.asyncio
     async def test_query_with_show_metrics(self, cli, mock_query):
         """Test query with show_metrics enabled."""
+
         async def mock_query_impl(prompt, options):
             yield Message(role=MessageRole.ASSISTANT, content="Response")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print") as mock_print:
             cli.query("Test", show_metrics=True)
-            
+
             # Should print metrics information
             print_calls = [str(call[0][0]) for call in mock_print.call_args_list]
             # Look for metrics output (contains timing info)
@@ -757,33 +746,34 @@ class TestMainFunctions:
     @pytest.mark.asyncio
     async def test_query_with_images_processing(self, cli, mock_query):
         """Test query with images parameter processing."""
+
         async def mock_query_impl(prompt, options):
             # Should have processed images
             assert options.images is not None
             assert len(options.images) > 0
             yield Message(role=MessageRole.ASSISTANT, content="Image processed")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli.process_images") as mock_process:
             mock_process.return_value = ["/path/to/image1.png", "/path/to/image2.jpg"]
-            
+
             cli.query("Analyze images", images="image1.png,image2.jpg")
-            
+
             mock_process.assert_called_once_with("image1.png,image2.jpg")
 
     @pytest.mark.asyncio
     async def test_query_verbose_mode(self, cli, mock_query):
         """Test query in verbose mode."""
         cli.config.verbose = True
-        
+
         async def mock_query_impl(prompt, options):
             # Should inherit verbose setting
             assert options.verbose is True
             yield Message(role=MessageRole.ASSISTANT, content="Verbose response")
-        
+
         mock_query.side_effect = mock_query_impl
-        
+
         with patch("claif_cod.cli._print"):
             cli.query("Test verbose")
 
@@ -793,9 +783,9 @@ class TestMainFunctions:
             mock_config = Mock()
             mock_config.verbose = False
             mock_load.return_value = mock_config
-            
+
             cli = CodexCLI(config_file="/custom/config.yaml", verbose=True)
-            
+
             mock_load.assert_called_once_with("/custom/config.yaml")
             assert cli.config.verbose is True  # Should be overridden
 
@@ -805,8 +795,8 @@ class TestMainFunctions:
             mock_config = Mock()
             mock_config.verbose = False
             mock_load.return_value = mock_config
-            
+
             cli = CodexCLI()
-            
+
             mock_load.assert_called_once_with(None)
             assert cli.config.verbose is False

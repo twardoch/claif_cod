@@ -1,7 +1,7 @@
 """Test suite for claif_cod installation functionality."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 

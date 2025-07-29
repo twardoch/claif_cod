@@ -1,6 +1,6 @@
 """Test retry functionality for claif_cod."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from claif.common import ClaifOptions, Message, MessageRole, ProviderError
