@@ -1,0 +1,119 @@
+name: Binary Builds
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-binaries:
+    name: Build Binary (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary-suffix: ""
+            archive-suffix: ".tar.gz"
+          - os: windows-latest
+            binary-suffix: ".exe"
+            archive-suffix: ".zip"
+          - os: macos-latest
+            binary-suffix: ""
+            archive-suffix: ".tar.gz"
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Install PyInstaller
+        run: uv add pyinstaller
+
+      - name: Build binary
+        run: |
+          uv run pyinstaller \
+            --onefile \
+            --name claif-cod${{ matrix.binary-suffix }} \
+            --paths src \
+            --hidden-import claif_cod \
+            --hidden-import claif_cod.cli \
+            --hidden-import claif_cod.client \
+            --hidden-import claif_cod.transport \
+            --hidden-import claif_cod.types \
+            --hidden-import claif_cod.install \
+            --distpath dist-binary \
+            --workpath build-binary \
+            --specpath . \
+            -c src/claif_cod/cli.py
+
+      - name: Test binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          ./dist-binary/claif-cod --help
+          ./dist-binary/claif-cod version
+
+      - name: Test binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          ./dist-binary/claif-cod.exe --help
+          ./dist-binary/claif-cod.exe version
+
+      - name: Create archive (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist-binary
+          tar -czf claif-cod-${{ runner.os }}-${{ runner.arch }}${{ matrix.archive-suffix }} claif-cod${{ matrix.binary-suffix }}
+
+      - name: Create archive (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd dist-binary
+          powershell Compress-Archive -Path claif-cod.exe -DestinationPath claif-cod-${{ runner.os }}-${{ runner.arch }}.zip
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claif-cod-${{ runner.os }}-${{ runner.arch }}
+          path: dist-binary/claif-cod-${{ runner.os }}-${{ runner.arch }}${{ matrix.archive-suffix }}
+          retention-days: 30
+
+  release-binaries:
+    name: Release Binaries
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
